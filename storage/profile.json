@@ -1,0 +1,18 @@
+{
+  "discordConnected": false,
+  "licenseKey": "",
+  "clientId": "",
+  "displayName": "viewer",
+  "geminiKey": "",
+  "chatMode": "safe",
+  "emojiMode": "medium",
+  "messagesPerHour": 6,
+  "minDelay": 45,
+  "maxDelay": 120,
+  "stealthMode": true,
+  "autoQueue": true,
+  "autoChat": true,
+  "maxTabs": 6,
+  "muteStreams": true,
+  "watchOnlyLive": true
+}
