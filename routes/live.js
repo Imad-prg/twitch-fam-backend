@@ -34,7 +34,7 @@ async function getAppToken() {
 router.get('/streamers', async (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
 
-  if (cachedStreamers.length && Date.now() - lastFetch < 60000) {
+  if (cachedStreamers.length && Date.now() - lastFetch < 30000) {
     return res.json({ success: true, count: cachedStreamers.length, streamers: cachedStreamers });
   }
 
@@ -44,14 +44,15 @@ router.get('/streamers', async (req, res) => {
 
     // Get registered streamers from profile module
     let registeredUsernames = [];
+    let profileModule = null;
     try {
-      const profileModule = require('./profile');
+      profileModule = require('./profile');
       registeredUsernames = Array.from(profileModule.registeredStreamers?.keys() || []);
     } catch(e) {}
 
     let allStreamers = [];
 
-    // Check if registered streamers are live
+    // ALWAYS check registered streamers directly — no viewer count limit
     if (registeredUsernames.length > 0) {
       const query = registeredUsernames.map(u => `user_login=${u}`).join('&');
       try {
