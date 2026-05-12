@@ -3,24 +3,22 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 
+const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || 'ceuwi31nmv1wjaqowzh9mflduyj1xl';
+const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || '5z3apxnwxehnaho0eqq3d8gsp5kn5q';
+
 let appAccessToken = null;
 let tokenExpiry = 0;
 let cachedStreamers = [];
 let lastFetch = 0;
 
 async function getAppToken() {
-  // Read env vars dynamically each time
-  const CLIENT_ID = process.env.TWITCH_CLIENT_ID;
-  const CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
-
-  if (!CLIENT_ID || !CLIENT_SECRET) return null;
+  if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) return null;
   if (appAccessToken && Date.now() < tokenExpiry) return appAccessToken;
-
   try {
-    const r = await axios.post(`https://id.twitch.tv/oauth2/token`, null, {
+    const r = await axios.post('https://id.twitch.tv/oauth2/token', null, {
       params: {
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
+        client_id: TWITCH_CLIENT_ID,
+        client_secret: TWITCH_CLIENT_SECRET,
         grant_type: 'client_credentials'
       }
     });
@@ -36,13 +34,6 @@ async function getAppToken() {
 router.get('/streamers', async (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
 
-  const CLIENT_ID = process.env.TWITCH_CLIENT_ID;
-  const CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
-
-  if (!CLIENT_ID || !CLIENT_SECRET) {
-    return res.json({ success: false, streamers: [], message: 'Twitch API not configured' });
-  }
-
   if (cachedStreamers.length && Date.now() - lastFetch < 120000) {
     return res.json({ success: true, count: cachedStreamers.length, streamers: cachedStreamers });
   }
@@ -52,7 +43,7 @@ router.get('/streamers', async (req, res) => {
     if (!token) throw new Error('No app token');
 
     const r = await axios.get('https://api.twitch.tv/helix/streams?first=50', {
-      headers: { 'Authorization': `Bearer ${token}`, 'Client-Id': CLIENT_ID }
+      headers: { 'Authorization': `Bearer ${token}`, 'Client-Id': TWITCH_CLIENT_ID }
     });
 
     cachedStreamers = r.data.data.map(s => ({
@@ -70,20 +61,19 @@ router.get('/streamers', async (req, res) => {
 
   } catch(e) {
     console.log('Live fetch error:', e.message);
-    res.json({ success: true, count: cachedStreamers.length, streamers: cachedStreamers });
+    res.json({ success: false, error: e.message, streamers: cachedStreamers });
   }
 });
 
 router.post('/check', async (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
-  const CLIENT_ID = process.env.TWITCH_CLIENT_ID;
   const { usernames } = req.body;
   if (!usernames?.length) return res.json({ success: false, streamers: [] });
   try {
     const token = await getAppToken();
     const query = usernames.map(u => `user_login=${u}`).join('&');
     const r = await axios.get(`https://api.twitch.tv/helix/streams?${query}`, {
-      headers: { 'Authorization': `Bearer ${token}`, 'Client-Id': CLIENT_ID }
+      headers: { 'Authorization': `Bearer ${token}`, 'Client-Id': TWITCH_CLIENT_ID }
     });
     const live = r.data.data.map(s => ({
       username: s.user_login,
