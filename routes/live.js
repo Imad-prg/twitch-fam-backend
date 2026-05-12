@@ -94,25 +94,7 @@ router.get('/streamers', async (req, res) => {
       } catch(e) {}
     }
 
-    // Fill rest with top streams if less than 50
-    if (allStreamers.length < 50) {
-      const r = await axios.get(`https://api.twitch.tv/helix/streams?first=${50 - allStreamers.length}`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'Client-Id': TWITCH_CLIENT_ID }
-      });
-      const topStreams = r.data.data
-        .filter(s => !allStreamers.find(x => x.username === s.user_login))
-        .map(s => ({
-          username: s.user_login,
-          displayName: s.user_name,
-          title: s.title,
-          game: s.game_name,
-          viewers: s.viewer_count,
-          thumbnail: s.thumbnail_url.replace('{width}', '80').replace('{height}', '80'),
-          language: s.language,
-          isRegistered: false
-        }));
-      allStreamers = [...allStreamers, ...topStreams];
-    }
+    // Only show registered community members — no top 50
 
     cachedStreamers = allStreamers;
     lastFetch = Date.now();
