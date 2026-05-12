@@ -2,77 +2,130 @@
 const express = require('express');
 const router = express.Router();
 const isAuth = require('../middleware/auth');
+const mongoose = require('mongoose');
 
-// Store profiles in memory (MongoDB model exists but keeping simple)
-const profiles = {};
-
-// Store all registered Twitch usernames
-const registeredStreamers = new Map(); // twitchUsername -> userId
-
-router.get('/', isAuth, (req, res) => {
-  const userId = req.user?.id || req.session?.user?.id;
-  res.json({ success: true, profile: profiles[userId] || {} });
+// Simple schema for profiles
+const ProfileSchema = new mongoose.Schema({
+  discordId: { type: String, required: true, unique: true },
+  twitchUsername: { type: String, default: '' },
+  twitchUrl: { type: String, default: '' },
+  twitchAttached: { type: Boolean, default: false },
+  geminiKey: { type: String, default: '' },
+  displayName: { type: String, default: '' },
+  chatSpeed: { type: String, default: 'slow' },
+  minSec: { type: Number, default: 20 },
+  maxSec: { type: Number, default: 70 },
+  moodTags: { type: [String], default: ['casual'] },
+  gameTags: { type: [String], default: [] },
+  langTags: { type: [String], default: ['English'] },
+  chatType: { type: String, default: 'text_emojis' },
+  emojiMode: { type: String, default: 'both' },
+  updatedAt: { type: Date, default: Date.now }
 });
 
-router.post('/save', isAuth, (req, res) => {
-  const userId = req.user?.id || req.session?.user?.id;
-  profiles[userId] = { ...profiles[userId], ...req.body };
+const Profile = mongoose.models.Profile || mongoose.model('Profile', ProfileSchema);
 
-  // Register twitch username if provided
-  if (req.body.twitchUrl) {
-    const username = req.body.twitchUrl.replace('https://twitch.tv/', '').replace('https://www.twitch.tv/', '').trim().toLowerCase();
-    if (username) {
-      registeredStreamers.set(username, userId);
-      profiles[userId].twitchUsername = username;
-    }
+const getUserId = (req) => req.user?.id || req.session?.user?.id;
+
+router.get('/', isAuth, async (req, res) => {
+  try {
+    const profile = await Profile.findOne({ discordId: getUserId(req) });
+    res.json({ success: true, profile: profile || {} });
+  } catch(e) {
+    res.json({ success: true, profile: {} });
   }
-
-  res.json({ success: true });
 });
 
-router.post('/attach-twitch', isAuth, (req, res) => {
-  const userId = req.user?.id || req.session?.user?.id;
-  const { url } = req.body;
-  if (!url) return res.json({ success: false, error: 'No URL' });
+router.post('/save', isAuth, async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const data = { ...req.body, updatedAt: new Date() };
 
-  const username = url.replace('https://twitch.tv/', '').replace('https://www.twitch.tv/', '').replace('http://twitch.tv/', '').trim().toLowerCase();
-  if (!username) return res.json({ success: false, error: 'Invalid URL' });
+    // Extract twitch username from URL
+    if (data.twitchUrl) {
+      data.twitchUsername = data.twitchUrl
+        .replace('https://www.twitch.tv/', '')
+        .replace('https://twitch.tv/', '')
+        .replace('http://twitch.tv/', '')
+        .trim().toLowerCase();
+    }
 
-  if (!profiles[userId]) profiles[userId] = {};
-  profiles[userId].twitchUrl = url;
-  profiles[userId].twitchUsername = username;
-  profiles[userId].twitchAttached = true;
-
-  // Register globally
-  registeredStreamers.set(username, userId);
-
-  console.log(`[TF] Twitch attached: ${username} for user ${userId}`);
-  console.log(`[TF] Total registered streamers: ${registeredStreamers.size}`);
-
-  res.json({ success: true, url, username });
+    await Profile.findOneAndUpdate(
+      { discordId: userId },
+      { $set: data },
+      { upsert: true, new: true }
+    );
+    res.json({ success: true });
+  } catch(e) {
+    console.log('Profile save error:', e.message);
+    res.json({ success: false, error: e.message });
+  }
 });
 
-router.post('/gemini-key', isAuth, (req, res) => {
-  const userId = req.user?.id || req.session?.user?.id;
-  const { key } = req.body;
-  if (!profiles[userId]) profiles[userId] = {};
-  profiles[userId].geminiKey = key;
-  res.json({ success: true });
+router.post('/attach-twitch', isAuth, async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const { url } = req.body;
+    if (!url) return res.json({ success: false, error: 'No URL' });
+
+    const username = url
+      .replace('https://www.twitch.tv/', '')
+      .replace('https://twitch.tv/', '')
+      .replace('http://twitch.tv/', '')
+      .trim().toLowerCase();
+
+    if (!username) return res.json({ success: false, error: 'Invalid URL' });
+
+    await Profile.findOneAndUpdate(
+      { discordId: userId },
+      { $set: { twitchUrl: url, twitchUsername: username, twitchAttached: true, updatedAt: new Date() } },
+      { upsert: true, new: true }
+    );
+
+    console.log(`[TF] Twitch attached: ${username} for ${userId}`);
+    res.json({ success: true, url, username });
+  } catch(e) {
+    res.json({ success: false, error: e.message });
+  }
 });
 
-router.delete('/gemini-key', isAuth, (req, res) => {
-  const userId = req.user?.id || req.session?.user?.id;
-  if (profiles[userId]) delete profiles[userId].geminiKey;
-  res.json({ success: true });
+router.post('/gemini-key', isAuth, async (req, res) => {
+  try {
+    const { key } = req.body;
+    await Profile.findOneAndUpdate(
+      { discordId: getUserId(req) },
+      { $set: { geminiKey: key, updatedAt: new Date() } },
+      { upsert: true }
+    );
+    res.json({ success: true });
+  } catch(e) {
+    res.json({ success: false });
+  }
 });
 
-// Get all registered streamers (public — extension calls this)
-router.get('/registered-streamers', (req, res) => {
+router.delete('/gemini-key', isAuth, async (req, res) => {
+  try {
+    await Profile.findOneAndUpdate(
+      { discordId: getUserId(req) },
+      { $set: { geminiKey: '', updatedAt: new Date() } }
+    );
+    res.json({ success: true });
+  } catch(e) {
+    res.json({ success: false });
+  }
+});
+
+// Get all registered streamers from MongoDB — persists across restarts
+router.get('/registered-streamers', async (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
-  const list = Array.from(registeredStreamers.keys());
-  res.json({ success: true, streamers: list, count: list.size });
+  try {
+    const profiles = await Profile.find({ twitchAttached: true, twitchUsername: { $ne: '' } });
+    const streamers = profiles.map(p => p.twitchUsername).filter(Boolean);
+    res.json({ success: true, streamers, count: streamers.length });
+  } catch(e) {
+    res.json({ success: true, streamers: [], count: 0 });
+  }
 });
 
 module.exports = router;
-module.exports.registeredStreamers = registeredStreamers;
-module.exports.profiles = profiles;
+module.exports.Profile = Profile;

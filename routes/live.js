@@ -42,13 +42,19 @@ router.get('/streamers', async (req, res) => {
     const token = await getAppToken();
     if (!token) throw new Error('No app token');
 
-    // Get registered streamers from profile module
+    // Get registered streamers from MongoDB
     let registeredUsernames = [];
-    let profileModule = null;
+    let profileMap = {};
     try {
-      profileModule = require('./profile');
-      registeredUsernames = Array.from(profileModule.registeredStreamers?.keys() || []);
-    } catch(e) {}
+      const { Profile } = require('./profile');
+      const profiles = await Profile.find({ twitchAttached: true, twitchUsername: { $ne: '' } });
+      profiles.forEach(p => {
+        if (p.twitchUsername) {
+          registeredUsernames.push(p.twitchUsername);
+          profileMap[p.twitchUsername] = p;
+        }
+      });
+    } catch(e) { console.log('Profile fetch error:', e.message); }
 
     let allStreamers = [];
 
@@ -60,9 +66,7 @@ router.get('/streamers', async (req, res) => {
           headers: { 'Authorization': `Bearer ${token}`, 'Client-Id': TWITCH_CLIENT_ID }
         });
         const liveRegistered = regRes.data.data.map(s => {
-          // Get streamer's own chat config
-          const streamerId = profileModule.registeredStreamers?.get(s.user_login);
-          const streamerProfile = streamerId ? (profileModule.profiles?.[streamerId] || {}) : {};
+          const streamerProfile = profileMap[s.user_login] || {};
           return {
             username: s.user_login,
             displayName: s.user_name,
@@ -72,10 +76,9 @@ router.get('/streamers', async (req, res) => {
             thumbnail: s.thumbnail_url.replace('{width}', '80').replace('{height}', '80'),
             language: s.language,
             isRegistered: true,
-            // Streamer's chat config — viewers will use this
             chatConfig: {
               moodTags: streamerProfile.moodTags || ['casual'],
-              gameTags: streamerProfile.gameTags || [s.game_name],
+              gameTags: streamerProfile.gameTags?.length ? streamerProfile.gameTags : [s.game_name],
               langTags: streamerProfile.langTags || ['English'],
               chatSpeed: streamerProfile.chatSpeed || 'slow',
               minSeconds: streamerProfile.minSec || 20,
