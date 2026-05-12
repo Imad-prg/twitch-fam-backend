@@ -1,6 +1,5 @@
 // backend/server.js
 require('dotenv').config();
-
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
@@ -27,7 +26,7 @@ const server = http.createServer(app);
 // DB
 connectDB();
 
-// CORS — allow extension and Railway
+// CORS
 app.use(cors({
   origin: true,
   credentials: true,
@@ -78,12 +77,23 @@ app.get('/health', (req, res) => {
   res.json({ success: true, uptime: process.uptime() });
 });
 
+// DEBUG ENV
+app.get('/debug-env', (req, res) => {
+  res.json({
+    TWITCH_CLIENT_ID: process.env.TWITCH_CLIENT_ID ? 'SET' : 'MISSING',
+    TWITCH_CLIENT_SECRET: process.env.TWITCH_CLIENT_SECRET ? 'SET' : 'MISSING',
+    DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID ? 'SET' : 'MISSING',
+    MONGO_URI: process.env.MONGO_URI ? 'SET' : 'MISSING',
+    SESSION_SECRET: process.env.SESSION_SECRET ? 'SET' : 'MISSING',
+    NODE_ENV: process.env.NODE_ENV || 'not set'
+  });
+});
+
 // SOCKET
 const io = initSocket(server);
 io.on('connection', (socket) => {
   log('Frontend connected');
   socket.emit('notification:new', { title: 'TWITCH FAM', desc: 'Connected' });
-
   const metricsLoop = setInterval(() => {
     socket.emit('metrics:update', {
       live: Math.floor(Math.random() * 8) + 4,
@@ -91,11 +101,10 @@ io.on('connection', (socket) => {
       ai: Math.floor(Math.random() * 100)
     });
   }, 7000);
-
   socket.on('disconnect', () => { clearInterval(metricsLoop); });
 });
 
-// TWITCH
+// TWITCH BOT
 const twitchEnabled = process.env.TWITCH_BOT_USERNAME && process.env.TWITCH_OAUTH_TOKEN && process.env.TWITCH_CHANNEL;
 if (twitchEnabled) {
   twitchClient.connect().then(() => { log('TWITCH CHAT CONNECTED'); startAutoChatLoop(); }).catch(e => console.log('TWITCH:', e.message));
