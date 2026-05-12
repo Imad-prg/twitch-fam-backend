@@ -12,7 +12,6 @@ let cachedStreamers = [];
 let lastFetch = 0;
 
 async function getAppToken() {
-  if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) return null;
   if (appAccessToken && Date.now() < tokenExpiry) return appAccessToken;
   try {
     const r = await axios.post('https://id.twitch.tv/oauth2/token', null, {
@@ -31,10 +30,11 @@ async function getAppToken() {
   }
 }
 
+// Get streamers — registered members first, then top streams
 router.get('/streamers', async (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
 
-  if (cachedStreamers.length && Date.now() - lastFetch < 120000) {
+  if (cachedStreamers.length && Date.now() - lastFetch < 60000) {
     return res.json({ success: true, count: cachedStreamers.length, streamers: cachedStreamers });
   }
 
@@ -42,29 +42,68 @@ router.get('/streamers', async (req, res) => {
     const token = await getAppToken();
     if (!token) throw new Error('No app token');
 
-    const r = await axios.get('https://api.twitch.tv/helix/streams?first=50', {
-      headers: { 'Authorization': `Bearer ${token}`, 'Client-Id': TWITCH_CLIENT_ID }
-    });
+    // Get registered streamers from profile module
+    let registeredUsernames = [];
+    try {
+      const profileModule = require('./profile');
+      registeredUsernames = Array.from(profileModule.registeredStreamers?.keys() || []);
+    } catch(e) {}
 
-    cachedStreamers = r.data.data.map(s => ({
-      username: s.user_login,
-      displayName: s.user_name,
-      title: s.title,
-      game: s.game_name,
-      viewers: s.viewer_count,
-      thumbnail: s.thumbnail_url.replace('{width}', '80').replace('{height}', '80'),
-      language: s.language
-    }));
+    let allStreamers = [];
 
+    // Check if registered streamers are live
+    if (registeredUsernames.length > 0) {
+      const query = registeredUsernames.map(u => `user_login=${u}`).join('&');
+      try {
+        const regRes = await axios.get(`https://api.twitch.tv/helix/streams?${query}`, {
+          headers: { 'Authorization': `Bearer ${token}`, 'Client-Id': TWITCH_CLIENT_ID }
+        });
+        const liveRegistered = regRes.data.data.map(s => ({
+          username: s.user_login,
+          displayName: s.user_name,
+          title: s.title,
+          game: s.game_name,
+          viewers: s.viewer_count,
+          thumbnail: s.thumbnail_url.replace('{width}', '80').replace('{height}', '80'),
+          language: s.language,
+          isRegistered: true // mark as community member
+        }));
+        allStreamers = [...liveRegistered];
+        console.log(`[TF] ${liveRegistered.length}/${registeredUsernames.length} registered streamers are live`);
+      } catch(e) {}
+    }
+
+    // Fill rest with top streams if less than 50
+    if (allStreamers.length < 50) {
+      const r = await axios.get(`https://api.twitch.tv/helix/streams?first=${50 - allStreamers.length}`, {
+        headers: { 'Authorization': `Bearer ${token}`, 'Client-Id': TWITCH_CLIENT_ID }
+      });
+      const topStreams = r.data.data
+        .filter(s => !allStreamers.find(x => x.username === s.user_login))
+        .map(s => ({
+          username: s.user_login,
+          displayName: s.user_name,
+          title: s.title,
+          game: s.game_name,
+          viewers: s.viewer_count,
+          thumbnail: s.thumbnail_url.replace('{width}', '80').replace('{height}', '80'),
+          language: s.language,
+          isRegistered: false
+        }));
+      allStreamers = [...allStreamers, ...topStreams];
+    }
+
+    cachedStreamers = allStreamers;
     lastFetch = Date.now();
     res.json({ success: true, count: cachedStreamers.length, streamers: cachedStreamers });
 
   } catch(e) {
     console.log('Live fetch error:', e.message);
-    res.json({ success: false, error: e.message, streamers: cachedStreamers });
+    res.json({ success: true, count: cachedStreamers.length, streamers: cachedStreamers });
   }
 });
 
+// Check specific streamers
 router.post('/check', async (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
   const { usernames } = req.body;
