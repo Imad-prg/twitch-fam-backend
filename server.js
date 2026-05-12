@@ -22,10 +22,8 @@ const { log } = require('./logs/logger');
 const app = express();
 const server = http.createServer(app);
 
-// DB
 connectDB();
 
-// CORS
 app.use(cors({
   origin: true,
   credentials: true,
@@ -35,11 +33,8 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Trust proxy for Railway HTTPS
 app.set('trust proxy', 1);
 
-// SESSION
 app.use(session({
   secret: process.env.SESSION_SECRET || 'twitchfamsecret',
   resave: false,
@@ -51,14 +46,10 @@ app.use(session({
   }
 }));
 
-// PASSPORT
 app.use(passport.initialize());
 app.use(passport.session());
-
-// STATIC
 app.use('/frontend', express.static(path.join(__dirname, '../frontend')));
 
-// ROUTES
 app.use('/stats', statsRoute);
 app.use('/auth', authRoute);
 app.use('/profile', profileRoute);
@@ -66,29 +57,24 @@ app.use('/ai', aiRoute);
 app.use('/live', liveRoute);
 app.use('/auth/twitch', twitchAuthRoute);
 
-// ROOT
 app.get('/', (req, res) => {
   res.json({ project: 'TWITCH FAM', status: 'online' });
 });
 
-// HEALTH
 app.get('/health', (req, res) => {
   res.json({ success: true, uptime: process.uptime() });
 });
 
-// DEBUG ENV
 app.get('/debug-env', (req, res) => {
   res.json({
-    TWITCH_CLIENT_ID: process.env.TWITCH_CLIENT_ID ? 'SET' : 'MISSING',
-    TWITCH_CLIENT_SECRET: process.env.TWITCH_CLIENT_SECRET ? 'SET' : 'MISSING',
-    DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID ? 'SET' : 'MISSING',
-    MONGO_URI: process.env.MONGO_URI ? 'SET' : 'MISSING',
-    SESSION_SECRET: process.env.SESSION_SECRET ? 'SET' : 'MISSING',
-    NODE_ENV: process.env.NODE_ENV || 'not set'
+    TWITCH_CLIENT_ID: process.env.TWITCH_CLIENT_ID || 'MISSING',
+    TWITCH_CLIENT_SECRET: process.env.TWITCH_CLIENT_SECRET || 'MISSING',
+    DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID || 'MISSING',
+    all_twitch_keys: Object.keys(process.env).filter(k => k.includes('TWITCH')),
+    all_keys_count: Object.keys(process.env).length
   });
 });
 
-// SOCKET
 const io = initSocket(server);
 io.on('connection', (socket) => {
   log('Frontend connected');
@@ -103,13 +89,11 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => { clearInterval(metricsLoop); });
 });
 
-// TWITCH BOT
 const twitchEnabled = process.env.TWITCH_BOT_USERNAME && process.env.TWITCH_OAUTH_TOKEN && process.env.TWITCH_CHANNEL;
 if (twitchEnabled) {
   twitchClient.connect().then(() => { log('TWITCH CHAT CONNECTED'); startAutoChatLoop(); }).catch(e => console.log('TWITCH:', e.message));
 }
 
-// START
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, async () => {
   log('Backend running');
