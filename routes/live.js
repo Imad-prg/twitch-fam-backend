@@ -58,16 +58,33 @@ router.get('/streamers', async (req, res) => {
         const regRes = await axios.get(`https://api.twitch.tv/helix/streams?${query}`, {
           headers: { 'Authorization': `Bearer ${token}`, 'Client-Id': TWITCH_CLIENT_ID }
         });
-        const liveRegistered = regRes.data.data.map(s => ({
-          username: s.user_login,
-          displayName: s.user_name,
-          title: s.title,
-          game: s.game_name,
-          viewers: s.viewer_count,
-          thumbnail: s.thumbnail_url.replace('{width}', '80').replace('{height}', '80'),
-          language: s.language,
-          isRegistered: true // mark as community member
-        }));
+        const liveRegistered = regRes.data.data.map(s => {
+          // Get streamer's own chat config
+          const streamerId = profileModule.registeredStreamers?.get(s.user_login);
+          const streamerProfile = streamerId ? (profileModule.profiles?.[streamerId] || {}) : {};
+          return {
+            username: s.user_login,
+            displayName: s.user_name,
+            title: s.title,
+            game: s.game_name,
+            viewers: s.viewer_count,
+            thumbnail: s.thumbnail_url.replace('{width}', '80').replace('{height}', '80'),
+            language: s.language,
+            isRegistered: true,
+            // Streamer's chat config — viewers will use this
+            chatConfig: {
+              moodTags: streamerProfile.moodTags || ['casual'],
+              gameTags: streamerProfile.gameTags || [s.game_name],
+              langTags: streamerProfile.langTags || ['English'],
+              chatSpeed: streamerProfile.chatSpeed || 'slow',
+              minSeconds: streamerProfile.minSec || 20,
+              maxSeconds: streamerProfile.maxSec || 70,
+              displayName: streamerProfile.displayName || '',
+              chatType: streamerProfile.chatType || 'text_emojis',
+              emojiMode: streamerProfile.emojiMode || 'both'
+            }
+          };
+        });
         allStreamers = [...liveRegistered];
         console.log(`[TF] ${liveRegistered.length}/${registeredUsernames.length} registered streamers are live`);
       } catch(e) {}
