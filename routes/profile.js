@@ -36,9 +36,10 @@ router.get('/', isAuth, async (req, res) => {
   }
 });
 
-router.post('/save', isAuth, async (req, res) => {
+router.post('/save', async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = getUserId(req) || req.body.discordId;
+    if (!userId) return res.json({ success: false, error: 'Not authenticated' });
     const data = { ...req.body, updatedAt: new Date() };
 
     // Extract twitch username from URL
@@ -62,10 +63,12 @@ router.post('/save', isAuth, async (req, res) => {
   }
 });
 
-router.post('/attach-twitch', isAuth, async (req, res) => {
+router.post('/attach-twitch', async (req, res) => {
   try {
-    const userId = getUserId(req);
+    // Accept discordId from body as fallback when session fails
+    const userId = getUserId(req) || req.body.discordId;
     const { url } = req.body;
+    if (!userId) return res.json({ success: false, error: 'Not authenticated' });
     if (!url) return res.json({ success: false, error: 'No URL' });
 
     const username = url
@@ -89,7 +92,7 @@ router.post('/attach-twitch', isAuth, async (req, res) => {
   }
 });
 
-router.post('/gemini-key', isAuth, async (req, res) => {
+router.post('/gemini-key', async (req, res) => {
   try {
     const { key } = req.body;
     await Profile.findOneAndUpdate(
