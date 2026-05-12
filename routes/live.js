@@ -2,7 +2,6 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
-const isAuth = require('../middleware/auth');
 
 const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
 const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
@@ -27,7 +26,7 @@ async function getAppToken() {
 let cachedStreamers = [];
 let lastFetch = 0;
 
-router.get('/streamers', isAuth, async (req, res) => {
+router.get('/streamers', async (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
 
   // Return cache if less than 2 minutes old
@@ -69,7 +68,7 @@ router.get('/streamers', isAuth, async (req, res) => {
 });
 
 // Check if specific streamers are live
-router.post('/check', isAuth, async (req, res) => {
+router.post('/check', async (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
   const { usernames } = req.body;
   if (!usernames?.length) return res.json({ success: false, streamers: [] });
