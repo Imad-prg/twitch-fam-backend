@@ -13,7 +13,10 @@ const PointsSchema = new mongoose.Schema({
   points: { type: Number, default: 0 },
   totalChats: { type: Number, default: 0 },
   totalStreamsSupported: { type: Number, default: 0 },
-  lastActive: { type: Date, default: Date.now }
+  lastActive: { type: Date, default: Date.now },
+  suspended: { type: Boolean, default: false },
+  suspendedUntil: { type: Date, default: null },
+  suspendReason: { type: String, default: '' }
 });
 const Points = mongoose.models.Points || mongoose.model('Points', PointsSchema);
 
@@ -65,6 +68,7 @@ button:hover { background: #7c3aed; }
 </html>`;
 
 router.get('/login', (req, res) => res.send(loginPage()));
+router.get('/', (req, res) => res.redirect('/admin/login'));
 
 router.post('/login', (req, res) => {
   const { username, password } = req.body;
@@ -81,6 +85,70 @@ router.get('/logout', (req, res) => {
   res.redirect('/admin/login');
 });
 
+// Suspend user
+router.post('/suspend', async (req, res) => {
+  if (!req.session?.adminAuth) return res.json({ success: false, error: 'Unauthorized' });
+  const { discordId, duration, reason } = req.body;
+  if (!discordId || !duration) return res.json({ success: false });
+
+  try {
+    let suspendedUntil = null;
+    if (duration !== 'permanent') {
+      const hours = parseInt(duration);
+      suspendedUntil = new Date(Date.now() + hours * 60 * 60 * 1000);
+    }
+
+    await Points.findOneAndUpdate(
+      { discordId },
+      { $set: { suspended: true, suspendedUntil, suspendReason: reason || 'No reason given' } },
+      { upsert: true }
+    );
+
+    res.json({ success: true });
+  } catch(e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// Unsuspend user
+router.post('/unsuspend', async (req, res) => {
+  if (!req.session?.adminAuth) return res.json({ success: false, error: 'Unauthorized' });
+  const { discordId } = req.body;
+  try {
+    await Points.findOneAndUpdate(
+      { discordId },
+      { $set: { suspended: false, suspendedUntil: null, suspendReason: '' } }
+    );
+    res.json({ success: true });
+  } catch(e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// Check if user is suspended (called by extension)
+router.get('/check-suspended/:discordId', async (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  try {
+    const user = await Points.findOne({ discordId: req.params.discordId });
+    if (!user || !user.suspended) return res.json({ suspended: false });
+
+    // Check if suspension expired
+    if (user.suspendedUntil && new Date() > user.suspendedUntil) {
+      await Points.findOneAndUpdate({ discordId: req.params.discordId }, { $set: { suspended: false, suspendedUntil: null } });
+      return res.json({ suspended: false });
+    }
+
+    return res.json({
+      suspended: true,
+      until: user.suspendedUntil,
+      reason: user.suspendReason,
+      permanent: !user.suspendedUntil
+    });
+  } catch(e) {
+    res.json({ suspended: false });
+  }
+});
+
 router.get('/dashboard', async (req, res) => {
   if (!req.session?.adminAuth) return res.redirect('/admin/login');
   try {
@@ -88,6 +156,12 @@ router.get('/dashboard', async (req, res) => {
     const users = await Profile.find({ twitchAttached: true });
     const leaderboard = await Points.find().sort({ points: -1 });
     const recentActivity = await Activity.find().sort({ timestamp: -1 }).limit(50);
+
+    // Auto-unsuspend expired
+    await Points.updateMany(
+      { suspended: true, suspendedUntil: { $lt: new Date() } },
+      { $set: { suspended: false, suspendedUntil: null } }
+    );
 
     res.send(`<!DOCTYPE html>
 <html>
@@ -100,7 +174,7 @@ body { background: #0e1021; color: #dde3f5; font-family: 'Segoe UI', sans-serif;
 .header { background: #151929; padding: 20px 30px; border-bottom: 1px solid #1f2640; display: flex; align-items: center; justify-content: space-between; }
 .logo { font-size: 22px; font-weight: 900; background: linear-gradient(90deg,#9146FF,#00d4c8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 .sub { font-size: 11px; color: #4a5270; letter-spacing: 1px; text-transform: uppercase; margin-top: 4px; }
-.logout-btn { background: transparent; border: 1px solid #1f2640; color: #7a85a8; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; text-decoration: none; }
+.logout-btn { background: transparent; border: 1px solid #1f2640; color: #7a85a8; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; text-decoration: none; }
 .logout-btn:hover { border-color: #9146FF; color: #dde3f5; }
 .stat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; padding: 20px 30px; }
 .stat { background: #151929; border: 1px solid #1f2640; border-radius: 10px; padding: 16px; text-align: center; }
@@ -111,18 +185,61 @@ body { background: #0e1021; color: #dde3f5; font-family: 'Segoe UI', sans-serif;
 .card h2 { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: #9146FF; }
 table { width: 100%; border-collapse: collapse; }
 th { font-size: 10px; font-weight: 700; color: #4a5270; text-transform: uppercase; letter-spacing: 0.8px; padding: 8px; text-align: left; border-bottom: 1px solid #1f2640; }
-td { padding: 10px 8px; font-size: 13px; border-bottom: 1px solid rgba(31,38,64,0.5); }
+td { padding: 10px 8px; font-size: 13px; border-bottom: 1px solid rgba(31,38,64,0.5); vertical-align: middle; }
 .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
 .badge-twitch { background: rgba(145,70,255,0.15); color: #9146FF; border: 1px solid rgba(145,70,255,0.3); }
 .badge-discord { background: rgba(88,101,242,0.15); color: #5865F2; border: 1px solid rgba(88,101,242,0.3); }
 .badge-pts { background: rgba(0,212,200,0.15); color: #00d4c8; border: 1px solid rgba(0,212,200,0.3); }
+.badge-suspended { background: rgba(248,113,113,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+.badge-active { background: rgba(35,209,139,0.15); color: #23d18b; border: 1px solid rgba(35,209,139,0.3); }
 .rank { font-weight: 900; color: #fbbf24; }
 .full { grid-column: 1 / -1; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: #23d18b; display: inline-block; margin-right: 6px; }
+.dot.red { background: #f87171; }
 .time { font-size: 11px; color: #4a5270; }
+.btn-sm { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; font-family: inherit; }
+.btn-suspend { background: rgba(248,113,113,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+.btn-suspend:hover { background: rgba(248,113,113,0.3); }
+.btn-unsuspend { background: rgba(35,209,139,0.15); color: #23d18b; border: 1px solid rgba(35,209,139,0.3); }
+.btn-unsuspend:hover { background: rgba(35,209,139,0.3); }
+.modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; justify-content:center; align-items:center; }
+.modal.show { display:flex; }
+.modal-box { background:#151929; border:1px solid #1f2640; border-radius:14px; padding:30px; width:380px; }
+.modal-box h3 { font-size:16px; font-weight:700; color:#f87171; margin-bottom:16px; }
+.modal-box label { font-size:10px; font-weight:700; color:#7a85a8; text-transform:uppercase; letter-spacing:0.8px; display:block; margin-bottom:5px; }
+.modal-box select, .modal-box input { width:100%; background:#0d0f1e; border:1px solid #1f2640; border-radius:8px; padding:9px 12px; color:#dde3f5; font-size:13px; outline:none; margin-bottom:14px; font-family:inherit; }
+.modal-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:6px; }
+.btn-cancel { background:transparent; color:#7a85a8; border:1px solid #1f2640; padding:10px; border-radius:8px; cursor:pointer; font-family:inherit; font-weight:600; }
+.btn-confirm { background:#f87171; color:#fff; border:none; padding:10px; border-radius:8px; cursor:pointer; font-family:inherit; font-weight:700; }
 </style>
 </head>
 <body>
+
+<!-- SUSPEND MODAL -->
+<div class="modal" id="suspendModal">
+  <div class="modal-box">
+    <h3>🚫 Suspend User</h3>
+    <input type="hidden" id="suspendDiscordId">
+    <label>Duration</label>
+    <select id="suspendDuration">
+      <option value="1">1 hour</option>
+      <option value="6">6 hours</option>
+      <option value="12">12 hours</option>
+      <option value="24" selected>24 hours</option>
+      <option value="48">2 days</option>
+      <option value="72">3 days</option>
+      <option value="168">1 week</option>
+      <option value="permanent">Permanent</option>
+    </select>
+    <label>Reason (optional)</label>
+    <input type="text" id="suspendReason" placeholder="e.g. Spam, abuse...">
+    <div class="modal-row">
+      <button class="btn-cancel" onclick="closeSuspendModal()">Cancel</button>
+      <button class="btn-confirm" onclick="confirmSuspend()">Suspend</button>
+    </div>
+  </div>
+</div>
+
 <div class="header">
   <div><div class="logo">TWITCH FAM</div><div class="sub">Admin Dashboard</div></div>
   <a href="/admin/logout" class="logout-btn">Logout</a>
@@ -138,8 +255,25 @@ td { padding: 10px 8px; font-size: 13px; border-bottom: 1px solid rgba(31,38,64,
   <div class="card">
     <h2>👥 Registered Users (${users.length})</h2>
     <table>
-      <tr><th>#</th><th>Discord ID</th><th>Twitch</th><th>Status</th></tr>
-      ${users.map((u, i) => `<tr><td>${i+1}</td><td><span class="badge badge-discord">${u.discordId?.slice(-6)||'?'}</span></td><td><span class="badge badge-twitch">@${u.twitchUsername||'?'}</span></td><td><span class="dot"></span>Active</td></tr>`).join('')}
+      <tr><th>#</th><th>Discord ID</th><th>Twitch</th><th>Status</th><th>Action</th></tr>
+      ${users.map((u, i) => {
+        const pts = leaderboard.find(p => p.discordId === u.discordId);
+        const isSuspended = pts?.suspended;
+        const until = pts?.suspendedUntil;
+        return `<tr>
+          <td>${i+1}</td>
+          <td><span class="badge badge-discord">${u.discordId?.slice(-6)||'?'}</span></td>
+          <td><span class="badge badge-twitch">@${u.twitchUsername||'?'}</span></td>
+          <td>${isSuspended 
+            ? `<span class="badge badge-suspended">🚫 ${until ? 'Until ' + new Date(until).toLocaleDateString() : 'Permanent'}</span>`
+            : `<span class="badge badge-active">✅ Active</span>`
+          }</td>
+          <td>${isSuspended
+            ? `<button class="btn-sm btn-unsuspend" onclick="unsuspend('${u.discordId}')">Unsuspend</button>`
+            : `<button class="btn-sm btn-suspend" onclick="openSuspendModal('${u.discordId}', '${u.twitchUsername||''}')">Suspend</button>`
+          }</td>
+        </tr>`;
+      }).join('')}
     </table>
   </div>
 
@@ -147,7 +281,14 @@ td { padding: 10px 8px; font-size: 13px; border-bottom: 1px solid rgba(31,38,64,
     <h2>🏆 Leaderboard</h2>
     <table>
       <tr><th>Rank</th><th>User</th><th>Points</th><th>Chats</th><th>Streams</th></tr>
-      ${leaderboard.length === 0 ? '<tr><td colspan="5" style="color:#4a5270;text-align:center;padding:20px">No points yet</td></tr>' : leaderboard.map((u,i) => `<tr><td class="rank">#${i+1}</td><td>${u.discordUsername||u.discordId?.slice(-6)||'?'} ${u.twitchUsername?`<span class="badge badge-twitch">@${u.twitchUsername}</span>`:''}</td><td><span class="badge badge-pts">${u.points.toLocaleString()} pts</span></td><td>${u.totalChats}</td><td>${u.totalStreamsSupported}</td></tr>`).join('')}
+      ${leaderboard.length === 0 ? '<tr><td colspan="5" style="color:#4a5270;text-align:center;padding:20px">No points yet</td></tr>' : 
+        leaderboard.map((u,i) => `<tr>
+          <td class="rank">#${i+1}</td>
+          <td>${u.discordUsername||u.discordId?.slice(-6)||'?'} ${u.twitchUsername?`<span class="badge badge-twitch">@${u.twitchUsername}</span>`:''} ${u.suspended?'<span class="badge badge-suspended">🚫</span>':''}</td>
+          <td><span class="badge badge-pts">${u.points.toLocaleString()} pts</span></td>
+          <td>${u.totalChats}</td>
+          <td>${u.totalStreamsSupported}</td>
+        </tr>`).join('')}
     </table>
   </div>
 
@@ -155,11 +296,60 @@ td { padding: 10px 8px; font-size: 13px; border-bottom: 1px solid rgba(31,38,64,
     <h2>📊 Recent Activity</h2>
     <table>
       <tr><th>Time</th><th>User</th><th>Action</th><th>Target</th><th>Points</th></tr>
-      ${recentActivity.length === 0 ? '<tr><td colspan="5" style="color:#4a5270;text-align:center;padding:20px">No activity yet</td></tr>' : recentActivity.map(a => `<tr><td class="time">${new Date(a.timestamp).toLocaleTimeString()}</td><td>${a.discordUsername||a.discordId?.slice(-6)||'?'}</td><td>${a.action==='chat_sent'?'💬 Chat sent':a.action==='stream_opened'?'🟢 Stream opened':'⭐ Stream supported'}</td><td>${a.targetStreamer?`<span class="badge badge-twitch">@${a.targetStreamer}</span>`:'-'}</td><td><span class="badge badge-pts">+${a.points} pts</span></td></tr>`).join('')}
+      ${recentActivity.length === 0 ? '<tr><td colspan="5" style="color:#4a5270;text-align:center;padding:20px">No activity yet</td></tr>' : 
+        recentActivity.map(a => `<tr>
+          <td class="time">${new Date(a.timestamp).toLocaleTimeString()}</td>
+          <td>${a.discordUsername||a.discordId?.slice(-6)||'?'}</td>
+          <td>${a.action==='chat_sent'?'💬 Chat sent':a.action==='stream_opened'?'🟢 Stream opened':'⭐ Stream supported'}</td>
+          <td>${a.targetStreamer?`<span class="badge badge-twitch">@${a.targetStreamer}</span>`:'-'}</td>
+          <td><span class="badge badge-pts">+${a.points} pts</span></td>
+        </tr>`).join('')}
     </table>
   </div>
 </div>
-<script>setTimeout(()=>location.reload(),30000);</script>
+
+<script>
+let currentDiscordId = '';
+
+function openSuspendModal(discordId, username) {
+  currentDiscordId = discordId;
+  document.getElementById('suspendDiscordId').value = discordId;
+  document.getElementById('suspendReason').value = '';
+  document.getElementById('suspendModal').classList.add('show');
+}
+
+function closeSuspendModal() {
+  document.getElementById('suspendModal').classList.remove('show');
+}
+
+async function confirmSuspend() {
+  const discordId = document.getElementById('suspendDiscordId').value;
+  const duration = document.getElementById('suspendDuration').value;
+  const reason = document.getElementById('suspendReason').value;
+
+  const r = await fetch('/admin/suspend', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ discordId, duration, reason })
+  });
+  const d = await r.json();
+  if (d.success) { closeSuspendModal(); location.reload(); }
+  else alert('Error: ' + d.error);
+}
+
+async function unsuspend(discordId) {
+  if (!confirm('Unsuspend this user?')) return;
+  const r = await fetch('/admin/unsuspend', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ discordId })
+  });
+  const d = await r.json();
+  if (d.success) location.reload();
+}
+
+setTimeout(() => location.reload(), 30000);
+</script>
 </body></html>`);
   } catch(e) {
     res.status(500).send('Error: ' + e.message);
@@ -171,10 +361,20 @@ router.post('/award-points', async (req, res) => {
   const { discordId, discordUsername, twitchUsername, action, targetStreamer } = req.body;
   if (!discordId) return res.json({ success: false });
   try {
+    // Check if suspended
+    const existing = await Points.findOne({ discordId });
+    if (existing?.suspended) {
+      if (!existing.suspendedUntil || new Date() < existing.suspendedUntil) {
+        return res.json({ success: false, suspended: true });
+      }
+      await Points.findOneAndUpdate({ discordId }, { $set: { suspended: false, suspendedUntil: null } });
+    }
+
     let pts = 0;
     if (action === 'chat_sent') pts = 1;
     if (action === 'stream_opened') pts = 5;
     if (action === 'stream_supported') pts = 10;
+
     const user = await Points.findOneAndUpdate(
       { discordId },
       { $inc: { points: pts, totalChats: action==='chat_sent'?1:0, totalStreamsSupported: action==='stream_opened'?1:0 }, $set: { discordUsername:discordUsername||'', twitchUsername:twitchUsername||'', lastActive:new Date() } },
