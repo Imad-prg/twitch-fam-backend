@@ -433,13 +433,11 @@ async function showWatchStats(streamer) {
     return;
   }
   
-  document.getElementById('watchList').innerHTML = d.viewers.map(v => {
-    const mins = v.totalMinutes || 0;
-    const timeStr = mins >= 60 ? Math.floor(mins/60) + 'h ' + (mins%60) + 'min' : mins + ' min';
-    return `<div class="watch-row">
-      <span class="watch-name">${v.discordUsername || v._id?.slice(-6) || '?'}</span>
-      <span class="watch-time">⏱ ${timeStr}</span>
-    </div>`;
+  document.getElementById('watchList').innerHTML = d.viewers.map(function(v) {
+    var mins = v.totalMinutes || 0;
+    var timeStr = mins >= 60 ? Math.floor(mins/60) + 'h ' + (mins%60) + 'min' : mins + ' min';
+    var name = v.discordUsername || (v._id ? v._id.slice(-6) : '?');
+    return '<div class="watch-row"><span class="watch-name">' + name + '</span><span class="watch-time">\u23F1 ' + timeStr + '</span></div>';
   }).join('');
 }
 
