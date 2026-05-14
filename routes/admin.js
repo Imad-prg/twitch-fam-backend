@@ -89,19 +89,22 @@ router.get('/logout', (req, res) => {
 // Track watch session start
 router.post('/watch-start', async (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
-  const { discordId, streamer } = req.body;
+  const { discordId, streamer, tabId } = req.body;
   if (!discordId || !streamer) return res.json({ success: false });
-  const key = `${discordId}_${streamer}`;
-  watchSessions.set(key, Date.now());
+  // Use tabId to prevent double counting same tab
+  const key = tabId ? `${discordId}_${streamer}_${tabId}` : `${discordId}_${streamer}`;
+  if (!watchSessions.has(key)) {
+    watchSessions.set(key, Date.now());
+  }
   res.json({ success: true });
 });
 
 // Track watch session end + save minutes
 router.post('/watch-end', async (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
-  const { discordId, discordUsername, streamer } = req.body;
+  const { discordId, discordUsername, streamer, tabId } = req.body;
   if (!discordId || !streamer) return res.json({ success: false });
-  const key = `${discordId}_${streamer}`;
+  const key = tabId ? `${discordId}_${streamer}_${tabId}` : `${discordId}_${streamer}`;
   const start = watchSessions.get(key);
   if (!start) return res.json({ success: false, error: 'No session' });
   
@@ -197,6 +200,23 @@ router.post('/award-points', async (req, res) => {
     );
     await Activity.create({ discordId, discordUsername, action, targetStreamer, points: pts });
     res.json({ success: true, points: user.points });
+  } catch(e) { res.json({ success: false, error: e.message }); }
+});
+
+// Adjust points manually
+router.post('/adjust-points', async (req, res) => {
+  if (!req.session?.adminAuth) return res.json({ success: false, error: 'Unauthorized' });
+  const { discordId, amount, reason } = req.body;
+  if (!discordId || amount === undefined) return res.json({ success: false });
+  try {
+    const pts = parseInt(amount);
+    const user = await Points.findOneAndUpdate(
+      { discordId },
+      { $inc: { points: pts } },
+      { new: true }
+    );
+    await Activity.create({ discordId, action: pts > 0 ? 'admin_add' : 'admin_remove', targetStreamer: reason || 'Admin adjustment', points: pts });
+    res.json({ success: true, newPoints: user?.points });
   } catch(e) { res.json({ success: false, error: e.message }); }
 });
 
@@ -370,10 +390,13 @@ td{padding:10px 8px;font-size:13px;border-bottom:1px solid rgba(31,38,64,0.5);ve
           return `<tr>
             <td class="rank">#${i+1}</td>
             <td>${u.discordUsername||u.discordId?.slice(-6)||'?'} ${u.twitchUsername?`<span class="badge badge-twitch">@${u.twitchUsername}</span>`:''}</td>
-            <td><span class="badge badge-pts">${u.points.toLocaleString()} pts</span></td>
+            <td>
+              <span class="badge badge-pts">${u.points.toLocaleString()} pts</span>
+              <button class="btn-sm" style="background:rgba(35,209,139,0.15);color:#23d18b;border:1px solid rgba(35,209,139,0.3)" onclick="adjustPoints('${u.discordId}', '${u.discordUsername||''}', ${u.points})">✏️</button>
+            </td>
             <td>${u.totalChats}</td>
             <td><span style="color:#00d4c8;font-size:12px">⏱ ${watchStr}</span></td>
-          </tr>`;
+          </tr>\`;
         }).join('')}
     </table>
   </div>
@@ -395,6 +418,23 @@ td{padding:10px 8px;font-size:13px;border-bottom:1px solid rgba(31,38,64,0.5);ve
 </div>
 
 <script>
+// Adjust Points Modal
+function adjustPoints(discordId, username, currentPts) {
+  const amount = prompt('Adjust points for ' + (username || discordId) + '\nCurrent: ' + currentPts + ' pts\n\nEnter amount (use - to remove, e.g. -50 or +100):');
+  if (!amount) return;
+  const num = parseInt(amount);
+  if (isNaN(num)) { alert('Invalid number'); return; }
+  const reason = prompt('Reason (optional):') || 'Manual adjustment';
+  fetch('/admin/adjust-points', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ discordId, amount: num, reason })
+  }).then(r => r.json()).then(d => {
+    if (d.success) { alert('Done! New balance: ' + d.newPoints + ' pts'); location.reload(); }
+    else alert('Error: ' + d.error);
+  });
+}
+
 function openSuspendModal(discordId) {
   document.getElementById('suspendDiscordId').value = discordId;
   document.getElementById('suspendReason').value = '';
