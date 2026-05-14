@@ -362,7 +362,7 @@ td{padding:10px 8px;font-size:13px;border-bottom:1px solid rgba(31,38,64,0.5);ve
           <td>${i+1}</td>
           <td><span class="badge badge-discord">${u.discordId?.slice(-6)||'?'}</span></td>
           <td><span class="badge badge-twitch">@${u.twitchUsername||'?'}</span></td>
-          <td><span style="color:#00d4c8;font-size:12px">⏱ ${watchStr}</span></td>
+          <td><span style="color:#00d4c8;font-size:12px">${watchStr}</span></td>
           <td>${isSuspended
             ? `<span class="badge badge-suspended">🚫 ${until ? new Date(until).toLocaleDateString() : '∞'}</span>`
             : `<span class="badge badge-active">✅ Active</span>`
@@ -395,7 +395,7 @@ td{padding:10px 8px;font-size:13px;border-bottom:1px solid rgba(31,38,64,0.5);ve
               <button class="btn-sm" style="background:rgba(35,209,139,0.15);color:#23d18b;border:1px solid rgba(35,209,139,0.3)" data-id="${u.discordId}" data-pts="${u.points}" onclick="adjustPoints(this.dataset.id,this.dataset.id.slice(-6),this.dataset.pts)">✏️</button>
             </td>
             <td>${u.totalChats}</td>
-            <td><span style="color:#00d4c8;font-size:12px">⏱ ${watchStr}</span></td>
+            <td><span style="color:#00d4c8;font-size:12px">${watchStr}</span></td>
           </tr>`;
         }).join('')}
     </table>
@@ -409,7 +409,7 @@ td{padding:10px 8px;font-size:13px;border-bottom:1px solid rgba(31,38,64,0.5);ve
         recentActivity.map(a => `<tr>
           <td class="time">${new Date(a.timestamp).toLocaleTimeString()}</td>
           <td>${a.discordUsername||a.discordId?.slice(-6)||'?'}</td>
-          <td>${a.action==='chat_sent'?'💬 Chat':a.action==='stream_opened'?'🟢 Opened':a.action==='watch_session'?('⏱ Watched '+a.watchMinutes+'min'):a.action==='stream_supported'?'⭐ Supported':('❓ '+a.action)}</td>
+          <td>${a.action==='chat_sent'?'💬 Chat':a.action==='stream_opened'?'🟢 Opened':a.action==='watch_session'?('Watched '+a.watchMinutes+'min'):a.action==='stream_supported'?'⭐ Supported':('❓ '+a.action)}</td>
           <td>${a.targetStreamer?`<span class="badge badge-twitch">@${a.targetStreamer}</span>`:'-'}</td>
           <td>${a.points>0?`<span class="badge badge-pts">+${a.points} pts</span>`:'-'}</td>
         </tr>`).join('')}
@@ -477,7 +477,7 @@ async function showWatchStats(streamer) {
     var mins = v.totalMinutes || 0;
     var timeStr = mins >= 60 ? Math.floor(mins/60) + 'h ' + (mins%60) + 'min' : mins + ' min';
     var name = v.discordUsername || (v._id ? v._id.slice(-6) : '?');
-    return '<div class="watch-row"><span class="watch-name">' + name + '</span><span class="watch-time">\u23F1 ' + timeStr + '</span></div>';
+    return '<div class="watch-row"><span class="watch-name">' + name + '</span><span class="watch-time"> ' + timeStr + '</span></div>';
   }).join('');
 }
 
