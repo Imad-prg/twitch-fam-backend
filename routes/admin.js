@@ -317,11 +317,11 @@ function render() {
     usersHtml += '<td style="color:#00d4c8">'+watchStr+'</td>';
     usersHtml += '<td>'+(isSusp ? '<span class="badge badge-suspended">Suspended</span>' : '<span class="badge badge-active">Active</span>')+'</td>';
     usersHtml += '<td>';
-    usersHtml += '<button class="btn-sm" style="color:#9146FF;border-color:rgba(145,70,255,0.3)" onclick="showWatch(\''+u.twitchUsername+'\')">View</button>';
+    usersHtml += '<button class="btn-sm" style="color:#9146FF;border-color:rgba(145,70,255,0.3)" onclick="showWatch(this.dataset.s)" data-s="'+u.twitchUsername+'">View</button>';
     if (isSusp) {
-      usersHtml += '<button class="btn-sm" style="color:#23d18b;border-color:rgba(35,209,139,0.3)" onclick="doUnsuspend(\''+u.discordId+'\')">Unsuspend</button>';
+      usersHtml += '<button class="btn-sm" style="color:#23d18b;border-color:rgba(35,209,139,0.3)" onclick="doUnsuspend(this.dataset.id)" data-id="'+u.discordId+'">Unsuspend</button>';
     } else {
-      usersHtml += '<button class="btn-sm" style="color:#f87171;border-color:rgba(248,113,113,0.3)" onclick="openSuspend(\''+u.discordId+'\')">Suspend</button>';
+      usersHtml += '<button class="btn-sm" style="color:#f87171;border-color:rgba(248,113,113,0.3)" onclick="openSuspend(this.dataset.id)" data-id="'+u.discordId+'">Suspend</button>';
     }
     usersHtml += '</td></tr>';
   });
@@ -336,7 +336,7 @@ function render() {
       lbHtml += '<tr>';
       lbHtml += '<td class="rank">#'+(i+1)+'</td>';
       lbHtml += '<td>'+(u.discordUsername || u.discordId.slice(-6))+(u.twitchUsername ? ' <span class="badge badge-twitch">@'+u.twitchUsername+'</span>' : '')+'</td>';
-      lbHtml += '<td><span class="badge badge-pts">'+u.points.toLocaleString()+' pts</span> <button class="btn-sm" style="color:#23d18b;border-color:rgba(35,209,139,0.3)" onclick="adjustPts(\''+u.discordId+'\','+u.points+')">Edit</button></td>';
+      lbHtml += '<td><span class="badge badge-pts">'+u.points.toLocaleString()+' pts</span> <button class="btn-sm" style="color:#23d18b;border-color:rgba(35,209,139,0.3)" onclick="adjustPts(this.dataset.id,this.dataset.pts)" data-id="'+u.discordId+'" data-pts="'+u.points+'">Edit</button></td>';
       lbHtml += '<td>'+u.totalChats+'</td>';
       lbHtml += '<td style="color:#00d4c8">'+fmt(u.totalWatchMinutes)+'</td>';
       lbHtml += '</tr>';
@@ -386,7 +386,7 @@ function doUnsuspend(id) {
 }
 
 function adjustPts(id, current) {
-  var amt = prompt('Current: '+current+' pts\\nEnter amount (+100 or -50):');
+  var amt = prompt('Current: '+current+' pts\nEnter amount (+100 or -50):');
   if (!amt) return;
   var n = parseInt(amt);
   if (isNaN(n)) { alert('Invalid'); return; }
