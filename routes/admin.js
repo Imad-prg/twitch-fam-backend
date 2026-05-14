@@ -392,11 +392,11 @@ td{padding:10px 8px;font-size:13px;border-bottom:1px solid rgba(31,38,64,0.5);ve
             <td>${u.discordUsername||u.discordId?.slice(-6)||'?'} ${u.twitchUsername?`<span class="badge badge-twitch">@${u.twitchUsername}</span>`:''}</td>
             <td>
               <span class="badge badge-pts">${u.points.toLocaleString()} pts</span>
-              <button class="btn-sm" style="background:rgba(35,209,139,0.15);color:#23d18b;border:1px solid rgba(35,209,139,0.3)" onclick="adjustPoints('${u.discordId}', '${u.discordUsername||''}', ${u.points})">✏️</button>
+              <button class="btn-sm" style="background:rgba(35,209,139,0.15);color:#23d18b;border:1px solid rgba(35,209,139,0.3)" onclick="adjustPoints('${u.discordId}','${u.discordUsername||u.discordId.slice(-6)}',${u.points})">✏️</button>
             </td>
             <td>${u.totalChats}</td>
             <td><span style="color:#00d4c8;font-size:12px">⏱ ${watchStr}</span></td>
-          </tr>\`;
+          </tr>`;
         }).join('')}
     </table>
   </div>
@@ -409,7 +409,7 @@ td{padding:10px 8px;font-size:13px;border-bottom:1px solid rgba(31,38,64,0.5);ve
         recentActivity.map(a => `<tr>
           <td class="time">${new Date(a.timestamp).toLocaleTimeString()}</td>
           <td>${a.discordUsername||a.discordId?.slice(-6)||'?'}</td>
-          <td>${a.action==='chat_sent'?'💬 Chat':a.action==='stream_opened'?'🟢 Opened':a.action==='watch_session'?`⏱ Watched ${a.watchMinutes}min`:a.action==='stream_supported'?'⭐ Supported':'❓ '+a.action}</td>
+          <td>${a.action==='chat_sent'?'💬 Chat':a.action==='stream_opened'?'🟢 Opened':a.action==='watch_session'?('⏱ Watched '+a.watchMinutes+'min'):a.action==='stream_supported'?'⭐ Supported':('❓ '+a.action)}</td>
           <td>${a.targetStreamer?`<span class="badge badge-twitch">@${a.targetStreamer}</span>`:'-'}</td>
           <td>${a.points>0?`<span class="badge badge-pts">+${a.points} pts</span>`:'-'}</td>
         </tr>`).join('')}
