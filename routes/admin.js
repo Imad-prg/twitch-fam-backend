@@ -448,7 +448,7 @@ function closeWatchModal() { document.getElementById('watchModal').classList.rem
 setTimeout(() => location.reload(), 30000);
 </script>
 </body></html>`);
-  } catch(e) { res.status(50).send('Error: ' + e.message); }
+  } catch(e) { res.status(500).send('Error: ' + e.message); }
 });
 
 module.exports = router;
