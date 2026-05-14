@@ -368,10 +368,10 @@ td{padding:10px 8px;font-size:13px;border-bottom:1px solid rgba(31,38,64,0.5);ve
             : `<span class="badge badge-active">✅ Active</span>`
           }</td>
           <td>
-            <button class="btn-sm btn-watch" onclick="showWatchStats('${u.twitchUsername||''}')">👁️</button>
+            <button class="btn-sm btn-watch" data-s="${u.twitchUsername||''}" onclick="showWatchStats(this.dataset.s)">👁️</button>
             ${isSuspended
-              ? `<button class="btn-sm btn-unsuspend" onclick="unsuspend('${u.discordId}')">↩️</button>`
-              : `<button class="btn-sm btn-suspend" onclick="openSuspendModal('${u.discordId}')">🚫</button>`
+              ? `<button class="btn-sm btn-unsuspend" data-id="${u.discordId}" onclick="unsuspend(this.dataset.id)">↩️</button>`
+              : `<button class="btn-sm btn-suspend" data-id="${u.discordId}" onclick="openSuspendModal(this.dataset.id)">🚫</button>`
             }
           </td>
         </tr>`;
@@ -392,7 +392,7 @@ td{padding:10px 8px;font-size:13px;border-bottom:1px solid rgba(31,38,64,0.5);ve
             <td>${u.discordUsername||u.discordId?.slice(-6)||'?'} ${u.twitchUsername?`<span class="badge badge-twitch">@${u.twitchUsername}</span>`:''}</td>
             <td>
               <span class="badge badge-pts">${u.points.toLocaleString()} pts</span>
-              <button class="btn-sm" style="background:rgba(35,209,139,0.15);color:#23d18b;border:1px solid rgba(35,209,139,0.3)" onclick="adjustPoints('${u.discordId}','${u.discordUsername||u.discordId.slice(-6)}',${u.points})">✏️</button>
+              <button class="btn-sm" style="background:rgba(35,209,139,0.15);color:#23d18b;border:1px solid rgba(35,209,139,0.3)" data-id="${u.discordId}" data-pts="${u.points}" onclick="adjustPoints(this.dataset.id,this.dataset.id.slice(-6),this.dataset.pts)">✏️</button>
             </td>
             <td>${u.totalChats}</td>
             <td><span style="color:#00d4c8;font-size:12px">⏱ ${watchStr}</span></td>
