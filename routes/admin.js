@@ -247,9 +247,9 @@ function load() {
         uh += '<td style="color:#00d4c8">'+w+'</td>';
         uh += '<td>'+(susp ? '<span class="badge ps">Suspended</span>' : '<span class="badge pa">Active</span>')+'</td>';
         uh += '<td>';
-        uh += '<button class="btn bv" onclick="viewWatch(\''+u.twitchUsername+'\')">Stats</button>';
-        if (susp) uh += '<button class="btn bu" onclick="doUnsuspend(\''+u.discordId+'\')">Unsuspend</button>';
-        else uh += '<button class="btn bs" onclick="openSuspend(\''+u.discordId+'\')">Suspend</button>';
+        uh += '<button class="btn bv" data-s="'+u.twitchUsername+'" onclick="viewWatch(this.dataset.s)">Stats</button>';
+        if (susp) uh += '<button class="btn bu" data-id="'+u.discordId+'" onclick="doUnsuspend(this.dataset.id)">Unsuspend</button>';
+        else uh += '<button class="btn bs" data-id="'+u.discordId+'" onclick="openSuspend(this.dataset.id)">Suspend</button>';
         uh += '</td></tr>';
       });
       uh += '</table></div>';
@@ -261,7 +261,7 @@ function load() {
         lh += '<tr>';
         lh += '<td class="rank">#'+(i+1)+'</td>';
         lh += '<td>'+(u.discordUsername||u.discordId.slice(-6))+(u.twitchUsername ? ' <span class="badge pt">@'+u.twitchUsername+'</span>' : '')+'</td>';
-        lh += '<td><span class="badge pp">'+u.points.toLocaleString()+' pts</span> <button class="btn be" onclick="editPts(\''+u.discordId+'\','+u.points+')">Edit</button></td>';
+        lh += '<td><span class="badge pp">'+u.points.toLocaleString()+' pts</span> <button class="btn be" data-id="'+u.discordId+'" data-pts="'+u.points+'" onclick="editPts(this.dataset.id,this.dataset.pts)">Edit</button></td>';
         lh += '<td>'+u.totalChats+'</td>';
         lh += '<td style="color:#00d4c8">'+fmt(u.totalWatchMinutes)+'</td>';
         lh += '</tr>';
