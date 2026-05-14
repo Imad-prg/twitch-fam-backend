@@ -1,221 +1,46 @@
-// backend/ai/gemini.js
+// backend/ai/gemini.js — now using Groq instead of Gemini
 
-const {
-GoogleGenerativeAI
-} = require(
-'@google/generative-ai'
-);
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL = 'llama-3.1-8b-instant';
 
-/* =========================
-CONFIG
-========================= */
+async function groqRequest(prompt) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error('GROQ_API_KEY not set');
 
-const GEMINI_API_KEY =
-process.env.GEMINI_API_KEY;
+  const r = await fetch(GROQ_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 50,
+      temperature: 0.9
+    })
+  });
 
-/* =========================
-INIT GEMINI
-========================= */
-
-const genAI =
-new GoogleGenerativeAI(
-GEMINI_API_KEY
-);
-
-/* =========================
-MODEL
-========================= */
-
-const model =
-genAI.getGenerativeModel({
-
-model:'gemini-1.5-flash'
-
-});
-
-/* =========================
-GENERATE AI MESSAGE
-========================= */
-
-async function getAIMessage(
-prompt
-){
-
-try{
-
-if(!GEMINI_API_KEY){
-
-console.log(
-'GEMINI API KEY MISSING'
-);
-
-return null;
-
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  return d.choices?.[0]?.message?.content?.trim() || null;
 }
 
-const result =
-await model.generateContent(
-prompt
-);
-
-const response =
-await result.response;
-
-const text =
-response.text();
-
-if(!text){
-
-return null;
-
+async function getAIMessage(prompt) {
+  return await groqRequest(prompt);
 }
 
-return cleanMessage(
-text
-);
-
-}catch(err){
-
-console.log(
-'GEMINI ERROR:',
-err.message
-);
-
-return null;
-
+async function generateSafeChatMessage(streamer, messages = []) {
+  const prompt = `You are a Twitch viewer watching ${streamer}'s stream.
+Write ONE short natural Twitch chat message. Max 8 words. No spam.
+Sometimes use emotes (Kappa, PogChamp, LUL, OMEGALUL).
+Reply with ONLY the message, nothing else.`;
+  return await groqRequest(prompt);
 }
 
+async function generateQueueMessage(streamer) {
+  const prompt = `Write one short hype Twitch chat message for ${streamer}'s stream. Max 6 words. Use emotes.`;
+  return await groqRequest(prompt);
 }
 
-/* =========================
-CLEAN MESSAGE
-========================= */
-
-function cleanMessage(
-message
-){
-
-if(!message) return '';
-
-return message
-
-.replace(/"/g,'')
-.replace(/\n/g,' ')
-.replace(/\s+/g,' ')
-.trim()
-
-.slice(0,120);
-
-}
-
-/* =========================
-SAFE CHAT MESSAGE
-========================= */
-
-async function generateSafeChatMessage(
-streamer,
-recentMessages = []
-){
-
-try{
-
-const prompt = `
-
-You are a REAL Twitch viewer chatting naturally.
-
-Generate ONE Twitch chat message.
-
-STRICT RULES:
-- max 10 words
-- no cringe
-- no spam
-- no bot behavior
-- natural human Twitch message
-- occasional emotes allowed
-- lowercase preferred
-- NEVER mention AI
-- NEVER repeat same structure
-
-Streamer:
-${streamer}
-
-Recent Chat:
-${recentMessages.join('\n')}
-
-`;
-
-const response =
-await getAIMessage(
-prompt
-);
-
-if(!response){
-
-return null;
-
-}
-
-return response;
-
-}catch(err){
-
-console.log(
-'SAFE MESSAGE ERROR:',
-err.message
-);
-
-return null;
-
-}
-
-}
-
-/* =========================
-QUEUE AI MESSAGE
-========================= */
-
-async function generateQueueMessage(
-streamer
-){
-
-try{
-
-const prompt = `
-
-Generate ONE Twitch viewer message
-for streamer "${streamer}".
-
-Style:
-- short
-- hype
-- human
-- twitch style
-- realistic
-
-`;
-
-return await getAIMessage(
-prompt
-);
-
-}catch(err){
-
-console.log(err);
-
-return null;
-
-}
-
-}
-
-/* =========================
-EXPORT
-========================= */
-
-module.exports = {
-
-getAIMessage,
-generateSafeChatMessage,
-generateQueueMessage
-
-};
+module.exports = { getAIMessage, generateSafeChatMessage, generateQueueMessage };
