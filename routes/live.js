@@ -8,18 +8,12 @@ const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || '5z3apxnwxehnah
 
 let appAccessToken = null;
 let tokenExpiry = 0;
-let cachedStreamers = [];
-let lastFetch = 0;
 
 async function getAppToken() {
   if (appAccessToken && Date.now() < tokenExpiry) return appAccessToken;
   try {
     const r = await axios.post('https://id.twitch.tv/oauth2/token', null, {
-      params: {
-        client_id: TWITCH_CLIENT_ID,
-        client_secret: TWITCH_CLIENT_SECRET,
-        grant_type: 'client_credentials'
-      }
+      params: { client_id: TWITCH_CLIENT_ID, client_secret: TWITCH_CLIENT_SECRET, grant_type: 'client_credentials' }
     });
     appAccessToken = r.data.access_token;
     tokenExpiry = Date.now() + (r.data.expires_in - 60) * 1000;
@@ -30,102 +24,87 @@ async function getAppToken() {
   }
 }
 
-// Get streamers — registered members first, then top streams
+// Returns ALL registered streamers — live ones first, offline ones after
 router.get('/streamers', async (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
 
-  if (cachedStreamers.length && Date.now() - lastFetch < 30000) {
-    return res.json({ success: true, count: cachedStreamers.length, streamers: cachedStreamers });
-  }
-
   try {
-    const token = await getAppToken();
-    if (!token) throw new Error('No app token');
+    const { Profile } = require('./profile');
+    const profiles = await Profile.find({ twitchAttached: true, twitchUsername: { $ne: '' } });
+    const registeredUsernames = profiles.map(p => p.twitchUsername).filter(Boolean);
 
-    // Get registered streamers from MongoDB
-    let registeredUsernames = [];
-    let profileMap = {};
+    if (registeredUsernames.length === 0) {
+      return res.json({ success: true, count: 0, streamers: [] });
+    }
+
+    // Build profile map
+    const profileMap = {};
+    profiles.forEach(p => { profileMap[p.twitchUsername] = p; });
+
+    let liveStreamers = [];
+    let token = null;
+
+    // Check which ones are live
     try {
-      const { Profile } = require('./profile');
-      const profiles = await Profile.find({ twitchAttached: true, twitchUsername: { $ne: '' } });
-      profiles.forEach(p => {
-        if (p.twitchUsername) {
-          registeredUsernames.push(p.twitchUsername);
-          profileMap[p.twitchUsername] = p;
-        }
-      });
-    } catch(e) { console.log('Profile fetch error:', e.message); }
-
-    let allStreamers = [];
-
-    // ALWAYS check registered streamers directly — no viewer count limit
-    if (registeredUsernames.length > 0) {
-      const query = registeredUsernames.map(u => `user_login=${u}`).join('&');
-      try {
-        const regRes = await axios.get(`https://api.twitch.tv/helix/streams?${query}`, {
+      token = await getAppToken();
+      if (token) {
+        const query = registeredUsernames.map(u => `user_login=${u}`).join('&');
+        const r = await axios.get(`https://api.twitch.tv/helix/streams?${query}`, {
           headers: { 'Authorization': `Bearer ${token}`, 'Client-Id': TWITCH_CLIENT_ID }
         });
-        const liveRegistered = regRes.data.data.map(s => {
-          const streamerProfile = profileMap[s.user_login] || {};
-          return {
-            username: s.user_login,
-            displayName: s.user_name,
-            title: s.title,
-            game: s.game_name,
-            viewers: s.viewer_count,
-            thumbnail: s.thumbnail_url.replace('{width}', '80').replace('{height}', '80'),
-            language: s.language,
-            isRegistered: true,
-            chatConfig: {
-              moodTags: streamerProfile.moodTags || ['casual'],
-              gameTags: streamerProfile.gameTags?.length ? streamerProfile.gameTags : [s.game_name],
-              langTags: streamerProfile.langTags || ['English'],
-              chatSpeed: streamerProfile.chatSpeed || 'slow',
-              minSeconds: streamerProfile.minSec || 20,
-              maxSeconds: streamerProfile.maxSec || 70,
-              displayName: streamerProfile.displayName || '',
-              chatType: streamerProfile.chatType || 'text_emojis',
-              emojiMode: streamerProfile.emojiMode || 'both'
-            }
-          };
+        liveStreamers = r.data.data.map(s => s.user_login);
+      }
+    } catch(e) {}
+
+    // Build full list: live first, then offline
+    const streamers = registeredUsernames.map(username => {
+      const p = profileMap[username] || {};
+      const isLive = liveStreamers.includes(username);
+      return {
+        username,
+        displayName: username,
+        isLive,
+        isRegistered: true,
+        game: isLive ? (liveStreamers.find ? '' : '') : '',
+        viewers: 0,
+        thumbnail: '',
+        chatConfig: {
+          moodTags: p.moodTags || ['casual'],
+          gameTags: p.gameTags || [],
+          langTags: p.langTags || ['English'],
+          minSeconds: p.minSec || 20,
+          maxSeconds: p.maxSec || 70,
+          displayName: p.displayName || '',
+          chatType: p.chatType || 'text_emojis'
+        }
+      };
+    });
+
+    // Get viewer counts for live streamers
+    if (token && liveStreamers.length > 0) {
+      try {
+        const query = liveStreamers.map(u => `user_login=${u}`).join('&');
+        const r = await axios.get(`https://api.twitch.tv/helix/streams?${query}`, {
+          headers: { 'Authorization': `Bearer ${token}`, 'Client-Id': TWITCH_CLIENT_ID }
         });
-        allStreamers = [...liveRegistered];
-        console.log(`[TF] ${liveRegistered.length}/${registeredUsernames.length} registered streamers are live`);
+        r.data.data.forEach(stream => {
+          const s = streamers.find(x => x.username === stream.user_login);
+          if (s) {
+            s.game = stream.game_name;
+            s.viewers = stream.viewer_count;
+            s.title = stream.title;
+            s.thumbnail = stream.thumbnail_url.replace('{width}', '80').replace('{height}', '80');
+          }
+        });
       } catch(e) {}
     }
 
-    // Only show registered community members — no top 50
+    // Sort: live first
+    streamers.sort((a, b) => (b.isLive ? 1 : 0) - (a.isLive ? 1 : 0));
 
-    cachedStreamers = allStreamers;
-    lastFetch = Date.now();
-    res.json({ success: true, count: cachedStreamers.length, streamers: cachedStreamers });
-
+    res.json({ success: true, count: streamers.length, streamers });
   } catch(e) {
     console.log('Live fetch error:', e.message);
-    res.json({ success: true, count: cachedStreamers.length, streamers: cachedStreamers });
-  }
-});
-
-// Check specific streamers
-router.post('/check', async (req, res) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  const { usernames } = req.body;
-  if (!usernames?.length) return res.json({ success: false, streamers: [] });
-  try {
-    const token = await getAppToken();
-    const query = usernames.map(u => `user_login=${u}`).join('&');
-    const r = await axios.get(`https://api.twitch.tv/helix/streams?${query}`, {
-      headers: { 'Authorization': `Bearer ${token}`, 'Client-Id': TWITCH_CLIENT_ID }
-    });
-    const live = r.data.data.map(s => ({
-      username: s.user_login,
-      title: s.title,
-      game: s.game_name,
-      viewers: s.viewer_count,
-      thumbnail: s.thumbnail_url.replace('{width}', '80').replace('{height}', '80')
-    }));
-    res.json({ success: true, streamers: live });
-  } catch(e) {
     res.json({ success: false, error: e.message, streamers: [] });
   }
 });
