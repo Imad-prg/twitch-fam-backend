@@ -1,113 +1,438 @@
-// automation/chatSender.js
+// backend/automation/chatSender.js
 
-const { getAIMessage } = require('../ai/gemini');
+const {
+getAIMessage
+} = require(
+'../ai/gemini'
+);
 
-const CHAT_INPUT_SELECTORS = [
-  'div[data-a-target="chat-input"]',
-  '.chat-wysiwyg-input__editor',
-  'div[contenteditable="true"][data-a-target]',
-  'div[contenteditable="true"]',
-  'textarea[data-a-target="chat-input"]'
-];
+/* =========================
+TWITCH CHAT SELECTORS
+========================= */
 
-const SEND_BUTTON_SELECTOR = 'button[data-a-target="chat-send-button"]';
-const CHAT_MESSAGE_SELECTOR = '.chat-line__message';
+const CHAT_INPUT_SELECTOR =
 
-function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-function randomDelay(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+'textarea[data-a-target="chat-input"]';
 
-async function detectChatbox(page) {
-  for (const selector of CHAT_INPUT_SELECTORS) {
-    try {
-      await page.waitForSelector(selector, { timeout: 5000 });
-      console.log('CHATBOX DETECTED:', selector);
-      return selector;
-    } catch(e) {}
-  }
-  console.log('CHATBOX NOT FOUND');
-  return null;
+const SEND_BUTTON_SELECTOR =
+
+'button[data-a-target="chat-send-button"]';
+
+const CHAT_MESSAGE_SELECTOR =
+
+'.chat-line__message';
+
+/* =========================
+WAIT
+========================= */
+
+function wait(ms){
+
+return new Promise(
+resolve=>{
+
+setTimeout(
+resolve,
+ms
+);
+
+}
+);
+
 }
 
-async function getRecentMessages(page) {
-  try {
-    const messages = await page.evaluate((selector) => {
-      const elements = document.querySelectorAll(selector);
-      return Array.from(elements).slice(-10).map(el => el.innerText).filter(Boolean);
-    }, CHAT_MESSAGE_SELECTOR);
-    return messages;
-  } catch(err) { return []; }
+/* =========================
+RANDOM DELAY
+========================= */
+
+function randomDelay(
+min,
+max
+){
+
+return Math.floor(
+
+Math.random() *
+
+(max - min + 1)
+
+) + min;
+
 }
 
-async function sendChatMessage(page, message) {
-  try {
-    const foundSelector = await detectChatbox(page);
-    if (!foundSelector) return false;
+/* =========================
+DETECT CHATBOX
+========================= */
 
-    await page.click(foundSelector);
-    await wait(800);
+async function detectChatbox(
+page
+){
 
-    await page.keyboard.down('Control');
-    await page.keyboard.press('a');
-    await page.keyboard.up('Control');
-    await wait(100);
-    await page.keyboard.press('Backspace');
-    await wait(200);
+try{
 
-    await page.keyboard.type(message, { delay: randomDelay(40, 100) });
-    await wait(randomDelay(600, 1500));
+await page.waitForSelector(
 
-    try {
-      const sendBtn = await page.$(SEND_BUTTON_SELECTOR);
-      if (sendBtn) { await sendBtn.click(); }
-      else { await page.keyboard.press('Enter'); }
-    } catch(err) { await page.keyboard.press('Enter'); }
+CHAT_INPUT_SELECTOR,
 
-    console.log('CHAT MESSAGE SENT:', message);
-    return true;
-  } catch(err) {
-    console.log('SEND CHAT ERROR:', err.message);
-    return false;
-  }
+{
+
+timeout:20000
+
 }
 
-async function generateAIReply(page, streamer, chatConfig = {}) {
-  try {
-    const recentMessages = await getRecentMessages(page);
-    const mood  = (chatConfig.moodTags  || ['casual']).join(', ');
-    const langs = (chatConfig.langTags  || ['English']).join(', ');
-    const games = (chatConfig.gameTags  || []).join(', ');
-    const name  =  chatConfig.displayName || 'viewer';
+);
 
-    const prompt = `You are "${name}", a Twitch viewer watching ${streamer}'s stream.
-Write ONE short Twitch chat message. Max 8 words. Natural and human, not spam.
-Mood: ${mood}. Language: ${langs}.${games ? ` Game: ${games}.` : ''}
-Sometimes use Twitch emotes (Kappa, PogChamp, LUL, OMEGALUL, Pog, EZ, KEKW, POGGERS, BibleThump, NotLikeThis, PauseChamp, FailFish, EleGiggle, 4Head, ResidentSleeper, <3, DansGame, SwiftRage, Kreygasm, FrankerZ).
-${recentMessages.length > 0 ? `Recent chat:\n${recentMessages.slice(-5).join('\n')}` : ''}
-Reply with ONLY the message text, no quotes, nothing else.`;
+console.log(
+'CHATBOX DETECTED'
+);
 
-    const response = await getAIMessage(prompt);
-    if (!response) return null;
-    return response.trim().replace(/^["']|["']$/g, '');
-  } catch(err) {
-    console.log('AI GENERATION ERROR:', err.message);
-    return null;
-  }
+return true;
+
+}catch(err){
+
+console.log(
+'CHATBOX NOT FOUND'
+);
+
+return false;
+
 }
 
-async function startChatLoop(page, streamer, chatConfig = {}) {
-  try {
-    console.log('CHAT LOOP STARTED:', streamer);
-    while (true) {
-      const min = (chatConfig.minSeconds || 20) * 1000;
-      const max = (chatConfig.maxSeconds || 70) * 1000;
-      const delay = randomDelay(min, max);
-      console.log(`[${streamer}] Next chat in ${Math.round(delay/1000)}s`);
-      await wait(delay);
-      const message = await generateAIReply(page, streamer, chatConfig);
-      if (!message) continue;
-      await sendChatMessage(page, message);
-    }
-  } catch(err) { console.log('CHAT LOOP ERROR:', err.message); }
 }
 
-module.exports = { detectChatbox, sendChatMessage, getRecentMessages, generateAIReply, startChatLoop };
+/* =========================
+GET CHAT MESSAGES
+========================= */
+
+async function getRecentMessages(
+page
+){
+
+try{
+
+const messages =
+await page.evaluate(
+
+(selector)=>{
+
+const elements =
+
+document.querySelectorAll(
+selector
+);
+
+return Array.from(elements)
+
+.slice(-10)
+
+.map(
+el=>el.innerText
+)
+
+.filter(Boolean);
+
+},
+
+CHAT_MESSAGE_SELECTOR
+
+);
+
+return messages;
+
+}catch(err){
+
+console.log(
+'CHAT READ ERROR:',
+err.message
+);
+
+return [];
+
+}
+
+}
+
+/* =========================
+SEND CHAT MESSAGE
+========================= */
+
+async function sendChatMessage(
+page,
+message
+){
+
+try{
+
+const found =
+await detectChatbox(
+page
+);
+
+if(!found){
+
+return false;
+
+}
+
+/* =========================
+FOCUS CHAT
+========================= */
+
+await page.click(
+CHAT_INPUT_SELECTOR
+);
+
+await wait(1000);
+
+/* =========================
+CLEAR INPUT
+========================= */
+
+await page.keyboard.down(
+'Control'
+);
+
+await page.keyboard.press(
+'A'
+);
+
+await page.keyboard.up(
+'Control'
+);
+
+await page.keyboard.press(
+'Backspace'
+);
+
+/* =========================
+TYPE MESSAGE
+========================= */
+
+await page.type(
+
+CHAT_INPUT_SELECTOR,
+
+message,
+
+{
+
+delay:
+randomDelay(
+40,
+120
+)
+
+}
+
+);
+
+/* =========================
+RANDOM WAIT
+========================= */
+
+await wait(
+
+randomDelay(
+1000,
+2500
+)
+
+);
+
+/* =========================
+SEND
+========================= */
+
+try{
+
+await page.click(
+SEND_BUTTON_SELECTOR
+);
+
+}catch(err){
+
+await page.keyboard.press(
+'Enter'
+);
+
+}
+
+console.log(
+'CHAT MESSAGE SENT:',
+message
+);
+
+return true;
+
+}catch(err){
+
+console.log(
+'SEND CHAT ERROR:',
+err.message
+);
+
+return false;
+
+}
+
+}
+
+/* =========================
+GENERATE AI MESSAGE
+========================= */
+
+async function generateAIReply(
+page,
+streamer
+){
+
+try{
+
+const recentMessages =
+await getRecentMessages(
+page
+);
+
+const prompt = `
+
+You are a Twitch viewer.
+
+Generate ONE short Twitch chat message.
+
+Rules:
+- natural
+- short
+- human
+- no spam
+- no cringe
+- max 12 words
+- use occasional emotes
+- react to stream energy
+
+Streamer:
+${streamer}
+
+Recent chat:
+${recentMessages.join('\n')}
+
+`;
+
+const response =
+await getAIMessage(
+prompt
+);
+
+if(!response){
+
+return null;
+
+}
+
+return response
+.trim()
+.replace(/"/g,'');
+
+}catch(err){
+
+console.log(
+'AI GENERATION ERROR:',
+err.message
+);
+
+return null;
+
+}
+
+}
+
+/* =========================
+AUTO CHAT LOOP
+========================= */
+
+async function startChatLoop(
+page,
+streamer
+){
+
+try{
+
+console.log(
+'CHAT LOOP STARTED:',
+streamer
+);
+
+while(true){
+
+/* =========================
+RANDOM DELAY
+========================= */
+
+const delay =
+
+randomDelay(
+45000,
+120000
+);
+
+console.log(
+'WAITING:',
+delay
+);
+
+await wait(delay);
+
+/* =========================
+GENERATE MESSAGE
+========================= */
+
+const message =
+await generateAIReply(
+
+page,
+streamer
+
+);
+
+if(!message){
+
+continue;
+
+}
+
+/* =========================
+SEND MESSAGE
+========================= */
+
+await sendChatMessage(
+
+page,
+message
+
+);
+
+}
+
+}catch(err){
+
+console.log(
+'CHAT LOOP ERROR:',
+err.message
+);
+
+}
+
+}
+
+/* =========================
+EXPORT
+========================= */
+
+module.exports = {
+
+detectChatbox,
+sendChatMessage,
+getRecentMessages,
+generateAIReply,
+startChatLoop
+
+};

@@ -1,104 +1,192 @@
-// queue/autoChatLoop.js — Chat via tmi.js IRC (pas Puppeteer)
+// backend/queue/autoChatLoop.js
 
-const twitchClient = require('../twitch/twitchClient');
-const { sendMessage, joinChannel, leaveChannel } = require('../twitch/twitchClient');
-const { getAIMessage } = require('../ai/geminiService');
-const { Profile } = require('../routes/profile');
+const {
+getOpenedTabs
+} = require(
+'./queueManager'
+);
 
-const activeLoops = new Map();
+const {
+startChatLoop
+} = require(
+'../automation/chatSender'
+);
 
-function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-function randomDelay(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+const activeLoops =
+new Map();
 
-async function generateMessage(streamer, chatConfig = {}) {
-  const mood  = (chatConfig.moodTags  || ['casual']).join(', ');
-  const langs = (chatConfig.langTags  || ['English']).join(', ');
-  const games = (chatConfig.gameTags  || []).join(', ');
-  const name  =  chatConfig.displayName || 'viewer';
+/* =========================
+WAIT
+========================= */
 
-  const prompt = `You are "${name}", a Twitch viewer watching ${streamer}'s stream.
-Write ONE short Twitch chat message. Max 8 words. Natural and human, not spam.
-Mood: ${mood}. Language: ${langs}.${games ? ` Game: ${games}.` : ''}
-Sometimes use Twitch emotes (Kappa, PogChamp, LUL, OMEGALUL, Pog, EZ, KEKW, POGGERS, BibleThump, NotLikeThis, PauseChamp, FailFish, EleGiggle, 4Head, ResidentSleeper, <3, DansGame, SwiftRage, Kreygasm, FrankerZ).
-Reply with ONLY the message text, no quotes, nothing else.`;
+function wait(ms){
 
-  try {
-    const msg = await getAIMessage(prompt);
-    return msg ? msg.trim().replace(/^["']|["']$/g, '') : null;
-  } catch(e) {
-    console.log('[CHAT] AI error:', e.message);
-    return null;
-  }
+return new Promise(
+resolve=>{
+
+setTimeout(
+resolve,
+ms
+);
+
+}
+);
+
 }
 
-async function startStreamerChatLoop(streamer, chatConfig = {}) {
-  if (activeLoops.has(streamer)) return;
-  activeLoops.set(streamer, true);
-  console.log(`[CHAT] Loop started: ${streamer}`);
+/* =========================
+START AUTO CHAT LOOP
+========================= */
 
-  try {
-    await joinChannel(streamer);
-    await wait(1000);
+async function startAutoChatLoop(){
 
-    while (activeLoops.has(streamer)) {
-      const min = (chatConfig.minSeconds || 20) * 1000;
-      const max = (chatConfig.maxSeconds || 70) * 1000;
-      const delay = randomDelay(min, max);
-      console.log(`[CHAT][${streamer}] Next message in ${Math.round(delay/1000)}s`);
-      await wait(delay);
-      if (!activeLoops.has(streamer)) break;
-      const message = await generateMessage(streamer, chatConfig);
-      if (!message) { console.log(`[CHAT][${streamer}] No message generated`); continue; }
-      await sendMessage(streamer, message);
-      console.log(`[CHAT][${streamer}] Sent: ${message}`);
-    }
-  } catch(err) {
-    console.log(`[CHAT] Loop error ${streamer}:`, err.message);
-  } finally {
-    activeLoops.delete(streamer);
-    try { await leaveChannel(streamer); } catch(e) {}
-  }
+console.log(
+'[TWITCH FAM] TWITCH FAM AI LOOP STARTED'
+);
+
+while(true){
+
+try{
+
+const openedTabs =
+getOpenedTabs();
+
+/* =========================
+NO TABS
+========================= */
+
+if(
+
+!openedTabs ||
+!openedTabs.length
+
+){
+
+await wait(5000);
+
+continue;
+
 }
 
-function stopStreamerChatLoop(streamer) { activeLoops.delete(streamer); }
+/* =========================
+START CHAT LOOPS
+========================= */
 
-async function startAutoChatLoop() {
-  console.log('[TWITCH FAM] AUTO CHAT LOOP STARTED');
+for(const tab of openedTabs){
 
-  while (true) {
-    try {
-      const profiles = await Profile.find({ twitchAttached: true, twitchUsername: { $ne: '' } });
+if(!tab) continue;
 
-      for (const profile of profiles) {
-        const streamer = profile.twitchUsername;
-        if (!streamer) continue;
-        if (activeLoops.has(streamer)) continue;
+const streamer =
+tab.streamer;
 
-        const chatConfig = {
-          moodTags:    profile.moodTags    || ['casual'],
-          langTags:    profile.langTags    || ['English'],
-          gameTags:    profile.gameTags    || [],
-          minSeconds:  profile.minSec      || 20,
-          maxSeconds:  profile.maxSec      || 70,
-          displayName: profile.displayName || 'viewer',
-          chatType:    profile.chatType    || 'text_emojis',
-        };
+const page =
+tab.page;
 
-        console.log(`[CHAT] Starting loop for ${streamer}`);
-        startStreamerChatLoop(streamer, chatConfig).catch(e =>
-          console.log(`[CHAT] Error ${streamer}:`, e.message)
-        );
-      }
+if(
+!streamer ||
+!page
+){
 
-      await wait(30000);
+continue;
 
-    } catch(err) {
-      console.log('[CHAT] Auto loop error:', err.message);
-      await wait(15000);
-    }
-  }
 }
 
-function getActiveLoops() { return Array.from(activeLoops.keys()); }
+/* =========================
+ALREADY RUNNING
+========================= */
 
-module.exports = { startAutoChatLoop, startStreamerChatLoop, stopStreamerChatLoop, getActiveLoops };
+if(
+activeLoops.has(streamer)
+){
+
+continue;
+
+}
+
+console.log(
+'STARTING AI CHAT:',
+streamer
+);
+
+activeLoops.set(
+streamer,
+true
+);
+
+/* =========================
+ASYNC LOOP
+========================= */
+
+(async()=>{
+
+try{
+
+await startChatLoop(
+
+page,
+streamer
+
+);
+
+}catch(err){
+
+console.log(
+'CHAT LOOP FAILED:',
+err.message
+);
+
+}finally{
+
+activeLoops.delete(
+streamer
+);
+
+}
+
+})();
+
+}
+
+/* =========================
+LOOP DELAY
+========================= */
+
+await wait(10000);
+
+}catch(err){
+
+console.log(
+'AUTO CHAT LOOP ERROR:',
+err.message
+);
+
+await wait(10000);
+
+}
+
+}
+
+}
+
+/* =========================
+GET ACTIVE LOOPS
+========================= */
+
+function getActiveLoops(){
+
+return Array.from(
+activeLoops.keys()
+);
+
+}
+
+/* =========================
+EXPORT
+========================= */
+
+module.exports = {
+
+startAutoChatLoop,
+getActiveLoops
+
+};
