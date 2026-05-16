@@ -235,21 +235,29 @@ function load() {
         '<div class="stat"><div class="stat-val">'+totalWatch+'h</div><div class="stat-lbl">Watch Time</div></div>';
 
       // Users
-      var uh = '<div class="card"><h2>Users ('+pr.length+')</h2><table><tr><th>#</th><th>Discord</th><th>Twitch</th><th>Watch</th><th>Status</th><th>Actions</th></tr>';
+      var uh = '<div class="card full"><h2>Users ('+pr.length+')</h2><table><tr><th>#</th><th>Twitch</th><th>Display Name</th><th>Mood</th><th>Lang</th><th>Game</th><th>Speed</th><th>Watch</th><th>Status</th><th>Actions</th></tr>';
       pr.forEach(function(u, i){
         var pts = lb.find(function(p){ return p.discordId === u.discordId; });
         var susp = pts && pts.suspended;
         var w = fmt(pts ? pts.totalWatchMinutes : 0);
+        var mood = (u.moodTags||[]).join(', ') || '-';
+        var lang = (u.langTags||[]).join(', ') || '-';
+        var game = (u.gameTags||[]).join(', ') || '-';
+        var speed = (u.minSec||20)+'s-'+(u.maxSec||70)+'s';
         uh += '<tr>';
         uh += '<td>'+(i+1)+'</td>';
-        uh += '<td><span class="badge pd">'+u.discordId.slice(-6)+'</span></td>';
         uh += '<td><span class="badge pt">@'+u.twitchUsername+'</span></td>';
+        uh += '<td style="color:#fbbf24;font-weight:700">'+(u.displayName||'-')+'</td>';
+        uh += '<td style="font-size:11px;color:#9146FF">'+mood+'</td>';
+        uh += '<td style="font-size:11px;color:#00d4c8">'+lang+'</td>';
+        uh += '<td style="font-size:11px;color:#23d18b">'+game+'</td>';
+        uh += '<td style="font-size:11px;color:#4a5270">'+speed+'</td>';
         uh += '<td style="color:#00d4c8">'+w+'</td>';
         uh += '<td>'+(susp ? '<span class="badge ps">Suspended</span>' : '<span class="badge pa">Active</span>')+'</td>';
         uh += '<td>';
-        uh += '<button class="btn bv" data-s="'+u.twitchUsername+'" onclick="viewWatch(this.dataset.s)">Stats</button>';
-        if (susp) uh += '<button class="btn bu" data-id="'+u.discordId+'" onclick="doUnsuspend(this.dataset.id)">Unsuspend</button>';
-        else uh += '<button class="btn bs" data-id="'+u.discordId+'" onclick="openSuspend(this.dataset.id)">Suspend</button>';
+        uh += '<button class="btn bv" onclick="viewWatch(this.dataset.s)" data-s="'+u.twitchUsername+'">Watch</button>';
+        if (susp) uh += '<button class="btn bu" onclick="doUnsuspend(this.dataset.id)" data-id="'+u.discordId+'">Unsuspend</button>';
+        else uh += '<button class="btn bs" onclick="openSuspend(this.dataset.id)" data-id="'+u.discordId+'">Suspend</button>';
         uh += '</td></tr>';
       });
       uh += '</table></div>';
@@ -309,7 +317,14 @@ router.get('/data', async (req, res) => {
       success: true,
       profiles: profiles.map(u => ({
         discordId: String(u.discordId||''),
-        twitchUsername: String(u.twitchUsername||'')
+        twitchUsername: String(u.twitchUsername||''),
+        displayName: String(u.displayName||''),
+        moodTags: u.moodTags||[],
+        langTags: u.langTags||[],
+        gameTags: u.gameTags||[],
+        minSec: u.minSec||20,
+        maxSec: u.maxSec||70,
+        chatType: String(u.chatType||'')
       })),
       leaderboard: leaderboard.map(u => ({
         discordId: String(u.discordId||''),
