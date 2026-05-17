@@ -235,7 +235,7 @@ function load() {
         '<div class="stat"><div class="stat-val">'+totalWatch+'h</div><div class="stat-lbl">Watch Time</div></div>';
 
       // Users
-      var uh = '<div class="card full"><h2>Users ('+pr.length+')</h2><table><tr><th>#</th><th>Twitch</th><th>Display Name</th><th>Mood</th><th>Lang</th><th>Game</th><th>Speed</th><th>Watch</th><th>Status</th><th>Actions</th></tr>';
+      var uh = '<div class="card full"><h2>Users ('+pr.length+')</h2><table><tr><th>#</th><th>Twitch</th><th>Display Name</th><th>Mood</th><th>Lang</th><th>Game</th><th>Speed</th><th>Chat</th><th>Watch</th><th>Status</th><th>Actions</th></tr>';
       pr.forEach(function(u, i){
         var pts = lb.find(function(p){ return p.discordId === u.discordId; });
         var susp = pts && pts.suspended;
@@ -244,6 +244,7 @@ function load() {
         var lang = (u.langTags||[]).join(', ') || '-';
         var game = (u.gameTags||[]).join(', ') || '-';
         var speed = (u.minSec||20)+'s-'+(u.maxSec||70)+'s';
+        var chatInfo = (u.chatSpeed||'slow')+' / '+(u.chatType||'text')+' / emoji:'+(u.emojiMode||'both');
         uh += '<tr>';
         uh += '<td>'+(i+1)+'</td>';
         uh += '<td><span class="badge pt">@'+u.twitchUsername+'</span></td>';
@@ -252,6 +253,7 @@ function load() {
         uh += '<td style="font-size:11px;color:#00d4c8">'+lang+'</td>';
         uh += '<td style="font-size:11px;color:#23d18b">'+game+'</td>';
         uh += '<td style="font-size:11px;color:#4a5270">'+speed+'</td>';
+        uh += '<td style="font-size:10px;color:#4a5270">'+chatInfo+'</td>';
         uh += '<td style="color:#00d4c8">'+w+'</td>';
         uh += '<td>'+(susp ? '<span class="badge ps">Suspended</span>' : '<span class="badge pa">Active</span>')+'</td>';
         uh += '<td>';
@@ -324,7 +326,16 @@ router.get('/data', async (req, res) => {
         gameTags: u.gameTags||[],
         minSec: u.minSec||20,
         maxSec: u.maxSec||70,
-        chatType: String(u.chatType||'')
+        chatType: String(u.chatType||''),
+        emojiMode: String(u.emojiMode||''),
+        chatSpeed: String(u.chatSpeed||'slow'),
+        msgRange: u.msgRange||2,
+        textRatio: u.textRatio||75,
+        shortRatio: u.shortRatio||42,
+        quietHours: String(u.quietHours||'disabled'),
+        safetyCeiling: String(u.safetyCeiling||'disabled'),
+        maxHour: u.maxHour||120,
+        maxDay: u.maxDay||1000
       })),
       leaderboard: leaderboard.map(u => ({
         discordId: String(u.discordId||''),

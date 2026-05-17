@@ -4,7 +4,6 @@ const router = express.Router();
 const isAuth = require('../middleware/auth');
 const mongoose = require('mongoose');
 
-// Simple schema for profiles
 const ProfileSchema = new mongoose.Schema({
   discordId: { type: String, required: true, unique: true },
   twitchUsername: { type: String, default: '' },
@@ -20,6 +19,17 @@ const ProfileSchema = new mongoose.Schema({
   langTags: { type: [String], default: ['English'] },
   chatType: { type: String, default: 'text_emojis' },
   emojiMode: { type: String, default: 'both' },
+  // New fields
+  msgRange: { type: Number, default: 2 },
+  textRatio: { type: Number, default: 75 },
+  shortRatio: { type: Number, default: 42 },
+  quietHours: { type: String, default: 'disabled' },
+  quietStart: { type: String, default: '21:00' },
+  quietEnd: { type: String, default: '21:03' },
+  safetyCeiling: { type: String, default: 'disabled' },
+  maxHour: { type: Number, default: 120 },
+  maxDay: { type: Number, default: 1000 },
+  emergencySwitch: { type: String, default: 'disabled' },
   updatedAt: { type: Date, default: Date.now }
 });
 
@@ -41,8 +51,8 @@ router.post('/save', async (req, res) => {
     const userId = getUserId(req) || req.body.discordId;
     if (!userId) return res.json({ success: false, error: 'Not authenticated' });
     const data = { ...req.body, updatedAt: new Date() };
+    delete data.discordId; // don't overwrite key
 
-    // Extract twitch username from URL
     if (data.twitchUrl) {
       data.twitchUsername = data.twitchUrl
         .replace('https://www.twitch.tv/', '')
@@ -65,7 +75,6 @@ router.post('/save', async (req, res) => {
 
 router.post('/attach-twitch', async (req, res) => {
   try {
-    // Accept discordId from body as fallback when session fails
     const userId = getUserId(req) || req.body.discordId;
     const { url } = req.body;
     if (!userId) return res.json({ success: false, error: 'Not authenticated' });
@@ -118,7 +127,6 @@ router.delete('/gemini-key', isAuth, async (req, res) => {
   }
 });
 
-// Get all registered streamers from MongoDB — persists across restarts
 router.get('/registered-streamers', async (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
   try {
