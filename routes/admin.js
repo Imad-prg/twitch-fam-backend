@@ -269,88 +269,71 @@ function fmt(m) { if (!m) return '0m'; return m >= 60 ? Math.floor(m/60)+'h'+(m%
 (function() {
   function fmt(m) { if (!m) return '0m'; return m >= 60 ? Math.floor(m/60)+'h'+(m%60)+'m' : m+'m'; }
 
-  var DATA = ${JSON.stringify({
-    users: users.map(function(u) {
-      var pts = leaderboard.find(function(p){return p.discordId===u.discordId;});
-      return {
-        discordId: String(u.discordId||''),
-        twitchUsername: String(u.twitchUsername||''),
-        displayName: String(u.displayName||''),
-        moodTags: u.moodTags||[],
-        langTags: u.langTags||[],
-        gameTags: u.gameTags||[],
-        minSec: u.minSec||20,
-        maxSec: u.maxSec||70,
-        suspended: !!(pts&&pts.suspended),
-        watchMinutes: pts ? (pts.totalWatchMinutes||0) : 0,
-        points: pts ? (pts.points||0) : 0
-      };
-    }),
-    leaderboard: leaderboard.map(function(u){return{discordId:String(u.discordId||''),discordUsername:String(u.discordUsername||''),twitchUsername:String(u.twitchUsername||''),points:Number(u.points||0),totalChats:Number(u.totalChats||0),totalWatchMinutes:Number(u.totalWatchMinutes||0),suspended:Boolean(u.suspended)};}),
-    activity: recentActivity.map(function(a){return{discordId:String(a.discordId||''),discordUsername:String(a.discordUsername||''),action:String(a.action||''),targetStreamer:String(a.targetStreamer||''),points:Number(a.points||0),watchMinutes:Number(a.watchMinutes||0),timestamp:a.timestamp};}),
-    apiKeys: apiKeys.map(function(k){return{discordId:String(k.discordId||''),discordUsername:String(k.discordUsername||''),apiKey:String(k.apiKey||''),active:Boolean(k.active),lastUsed:k.lastUsed};})
-  })};
+  fetch('/admin/data').then(function(r){ return r.json(); }).then(function(DATA) {
+    if (!DATA.success) { window.location='/admin/login'; return; }
 
-  var html = '';
+    function fmt(m) { if (!m) return '0m'; return m >= 60 ? Math.floor(m/60)+'h'+(m%60)+'m' : m+'m'; }
 
-  // Users table
-  html += '<div class="card full"><h2>Users (' + DATA.users.length + ')</h2><table><tr><th>#</th><th>Twitch</th><th>Name</th><th>Mood</th><th>Lang</th><th>Game</th><th>Speed</th><th>Watch</th><th>Status</th><th>Actions</th></tr>';
-  DATA.users.forEach(function(u, i) {
-    var mood = (u.moodTags||[]).join(', ') || '-';
-    var lang = (u.langTags||[]).join(', ') || '-';
-    var game = (u.gameTags||[]).join(', ') || '-';
-    var speed = u.minSec + 's-' + u.maxSec + 's';
-    var w = fmt(u.watchMinutes);
-    html += '<tr><td>' + (i+1) + '</td><td><span class="badge pt">@' + u.twitchUsername + '</span></td><td style="color:#fbbf24;font-weight:700">' + (u.displayName||'-') + '</td>';
-    html += '<td style="font-size:11px;color:#9146FF">' + mood + '</td><td style="font-size:11px;color:#00d4c8">' + lang + '</td><td style="font-size:11px;color:#23d18b">' + game + '</td>';
-    html += '<td style="font-size:11px;color:#4a5270">' + speed + '</td><td style="color:#00d4c8">' + w + '</td>';
-    html += '<td>' + (u.suspended ? '<span class="badge ps">Suspended</span>' : '<span class="badge pa">Active</span>') + '</td><td>';
-    html += '<button class="btn bv" data-s="' + u.twitchUsername + '" onclick="viewWatch(this.dataset.s)">Watch</button>';
-    html += u.suspended
-      ? '<button class="btn bu" data-id="' + u.discordId + '" onclick="doUnsuspend(this.dataset.id)">Unsuspend</button>'
-      : '<button class="btn bs" data-id="' + u.discordId + '" onclick="openSuspend(this.dataset.id)">Suspend</button>';
-    html += '<button class="btn bk" data-id="' + u.discordId + '" data-name="' + u.twitchUsername + '" onclick="genKey(this.dataset.id,this.dataset.name)">Key</button>';
-    html += '</td></tr>';
+    var html = '';
+
+    // Users table
+    html += '<div class="card full"><h2>Users (' + DATA.users.length + ')</h2><table><tr><th>#</th><th>Twitch</th><th>Name</th><th>Mood</th><th>Lang</th><th>Game</th><th>Speed</th><th>Watch</th><th>Status</th><th>Actions</th></tr>';
+    DATA.users.forEach(function(u, i) {
+      var mood = (u.moodTags||[]).join(', ') || '-';
+      var lang = (u.langTags||[]).join(', ') || '-';
+      var game = (u.gameTags||[]).join(', ') || '-';
+      var speed = u.minSec + 's-' + u.maxSec + 's';
+      var w = fmt(u.watchMinutes);
+      html += '<tr><td>' + (i+1) + '</td><td><span class="badge pt">@' + u.twitchUsername + '</span></td><td style="color:#fbbf24;font-weight:700">' + (u.displayName||'-') + '</td>';
+      html += '<td style="font-size:11px;color:#9146FF">' + mood + '</td><td style="font-size:11px;color:#00d4c8">' + lang + '</td><td style="font-size:11px;color:#23d18b">' + game + '</td>';
+      html += '<td style="font-size:11px;color:#4a5270">' + speed + '</td><td style="color:#00d4c8">' + w + '</td>';
+      html += '<td>' + (u.suspended ? '<span class="badge ps">Suspended</span>' : '<span class="badge pa">Active</span>') + '</td><td>';
+      html += '<button class="btn bv" data-s="' + u.twitchUsername + '" onclick="viewWatch(this.dataset.s)">Watch</button>';
+      html += u.suspended
+        ? '<button class="btn bu" data-id="' + u.discordId + '" onclick="doUnsuspend(this.dataset.id)">Unsuspend</button>'
+        : '<button class="btn bs" data-id="' + u.discordId + '" onclick="openSuspend(this.dataset.id)">Suspend</button>';
+      html += '<button class="btn bk" data-id="' + u.discordId + '" data-name="' + u.twitchUsername + '" onclick="genKey(this.dataset.id,this.dataset.name)">Key</button>';
+      html += '</td></tr>';
+    });
+    html += '</table></div>';
+
+    // Leaderboard
+    html += '<div class="card"><h2>Leaderboard</h2><table><tr><th>Rank</th><th>User</th><th>Points</th><th>Chats</th><th>Watch</th></tr>';
+    if (!DATA.leaderboard.length) html += '<tr><td colspan="5" style="color:#4a5270;text-align:center;padding:16px">No points yet</td></tr>';
+    DATA.leaderboard.forEach(function(u, i) {
+      html += '<tr><td class="rank">#' + (i+1) + '</td><td>' + (u.discordUsername||u.discordId.slice(-6)) + (u.twitchUsername ? ' <span class="badge pt">@' + u.twitchUsername + '</span>' : '') + '</td>';
+      html += '<td><span class="badge pp">' + u.points.toLocaleString() + ' pts</span> <button class="btn be" data-id="' + u.discordId + '" data-pts="' + u.points + '" onclick="editPts(this.dataset.id,this.dataset.pts)">Edit</button></td>';
+      html += '<td>' + u.totalChats + '</td><td style="color:#00d4c8">' + fmt(u.totalWatchMinutes) + '</td></tr>';
+    });
+    html += '</table></div>';
+
+    // API Keys
+    html += '<div class="card"><h2>API Keys (' + DATA.apiKeys.length + ')</h2>';
+    html += '<div class="newkey"><input type="text" id="newKeyId" placeholder="Discord ID (17-19 digits)"><input type="text" id="newKeyName" placeholder="Username (optional)"><button onclick="createKey()">+ Create Key</button></div>';
+    html += '<table><tr><th>User</th><th>Key</th><th>Status</th><th>Last Used</th><th>Actions</th></tr>';
+    if (!DATA.apiKeys.length) html += '<tr><td colspan="5" style="color:#4a5270;text-align:center;padding:16px">No keys yet</td></tr>';
+    DATA.apiKeys.forEach(function(k) {
+      var lu = k.lastUsed ? new Date(k.lastUsed).toLocaleDateString() : 'Never';
+      html += '<tr><td>' + (k.discordUsername||k.discordId.slice(-6)) + '</td><td><code>' + k.apiKey + '</code></td>';
+      html += '<td>' + (k.active ? '<span class="badge pa">Active</span>' : '<span class="badge ps">Revoked</span>') + '</td><td class="ts">' + lu + '</td><td>';
+      html += k.active ? '<button class="btn bs" data-id="' + k.discordId + '" onclick="revokeKey(this.dataset.id)">Revoke</button>' : '';
+      html += '<button class="btn bk" data-id="' + k.discordId + '" data-name="' + k.discordUsername + '" onclick="genKey(this.dataset.id,this.dataset.name)">Regen</button></td></tr>';
+    });
+    html += '</table></div>';
+
+    // Activity
+    html += '<div class="card full"><h2>Recent Activity</h2><table><tr><th>Time</th><th>User</th><th>Action</th><th>Target</th><th>Pts</th></tr>';
+    if (!DATA.activity.length) html += '<tr><td colspan="5" style="color:#4a5270;text-align:center;padding:16px">No activity</td></tr>';
+    DATA.activity.forEach(function(a) {
+      var acts = {chat_sent:'Chat',stream_opened:'Opened',watch_session:'Watch '+a.watchMinutes+'min',stream_supported:'Supported',admin_add:'Admin +',admin_remove:'Admin -'};
+      html += '<tr><td class="ts">' + new Date(a.timestamp).toLocaleTimeString() + '</td><td>' + (a.discordUsername||a.discordId.slice(-6)) + '</td>';
+      html += '<td>' + (acts[a.action]||a.action) + '</td><td>' + (a.targetStreamer ? '<span class="badge pt">@' + a.targetStreamer + '</span>' : '-') + '</td>';
+      html += '<td>' + (a.points>0?'<span class="badge pp">+'+a.points+'</span>':a.points<0?'<span class="badge ps">'+a.points+'</span>':'-') + '</td></tr>';
+    });
+    html += '</table></div>';
+
+    document.getElementById('content').innerHTML = html;
   });
-  html += '</table></div>';
-
-  // Leaderboard
-  html += '<div class="card"><h2>Leaderboard</h2><table><tr><th>Rank</th><th>User</th><th>Points</th><th>Chats</th><th>Watch</th></tr>';
-  if (!DATA.leaderboard.length) html += '<tr><td colspan="5" style="color:#4a5270;text-align:center;padding:16px">No points yet</td></tr>';
-  DATA.leaderboard.forEach(function(u, i) {
-    html += '<tr><td class="rank">#' + (i+1) + '</td><td>' + (u.discordUsername||u.discordId.slice(-6)) + (u.twitchUsername ? ' <span class="badge pt">@' + u.twitchUsername + '</span>' : '') + '</td>';
-    html += '<td><span class="badge pp">' + u.points.toLocaleString() + ' pts</span> <button class="btn be" data-id="' + u.discordId + '" data-pts="' + u.points + '" onclick="editPts(this.dataset.id,this.dataset.pts)">Edit</button></td>';
-    html += '<td>' + u.totalChats + '</td><td style="color:#00d4c8">' + fmt(u.totalWatchMinutes) + '</td></tr>';
-  });
-  html += '</table></div>';
-
-  // API Keys
-  html += '<div class="card"><h2>API Keys (' + DATA.apiKeys.length + ')</h2>';
-  html += '<div class="newkey"><input type="text" id="newKeyId" placeholder="Discord ID (17-19 digits)"><input type="text" id="newKeyName" placeholder="Username (optional)"><button onclick="createKey()">+ Create Key</button></div>';
-  html += '<table><tr><th>User</th><th>Key</th><th>Status</th><th>Last Used</th><th>Actions</th></tr>';
-  if (!DATA.apiKeys.length) html += '<tr><td colspan="5" style="color:#4a5270;text-align:center;padding:16px">No keys yet</td></tr>';
-  DATA.apiKeys.forEach(function(k) {
-    var lu = k.lastUsed ? new Date(k.lastUsed).toLocaleDateString() : 'Never';
-    html += '<tr><td>' + (k.discordUsername||k.discordId.slice(-6)) + '</td><td><code>' + k.apiKey + '</code></td>';
-    html += '<td>' + (k.active ? '<span class="badge pa">Active</span>' : '<span class="badge ps">Revoked</span>') + '</td><td class="ts">' + lu + '</td><td>';
-    html += k.active ? '<button class="btn bs" data-id="' + k.discordId + '" onclick="revokeKey(this.dataset.id)">Revoke</button>' : '';
-    html += '<button class="btn bk" data-id="' + k.discordId + '" data-name="' + k.discordUsername + '" onclick="genKey(this.dataset.id,this.dataset.name)">Regen</button></td></tr>';
-  });
-  html += '</table></div>';
-
-  // Activity
-  html += '<div class="card full"><h2>Recent Activity</h2><table><tr><th>Time</th><th>User</th><th>Action</th><th>Target</th><th>Pts</th></tr>';
-  if (!DATA.activity.length) html += '<tr><td colspan="5" style="color:#4a5270;text-align:center;padding:16px">No activity</td></tr>';
-  DATA.activity.forEach(function(a) {
-    var acts = {chat_sent:'Chat',stream_opened:'Opened',watch_session:'Watch '+a.watchMinutes+'min',stream_supported:'Supported',admin_add:'Admin +',admin_remove:'Admin -'};
-    html += '<tr><td class="ts">' + new Date(a.timestamp).toLocaleTimeString() + '</td><td>' + (a.discordUsername||a.discordId.slice(-6)) + '</td>';
-    html += '<td>' + (acts[a.action]||a.action) + '</td><td>' + (a.targetStreamer ? '<span class="badge pt">@' + a.targetStreamer + '</span>' : '-') + '</td>';
-    html += '<td>' + (a.points>0?'<span class="badge pp">+'+a.points+'</span>':a.points<0?'<span class="badge ps">'+a.points+'</span>':'-') + '</td></tr>';
-  });
-  html += '</table></div>';
-
-  document.getElementById('content').innerHTML = html;
-})();
 </script>
 
 </body>
