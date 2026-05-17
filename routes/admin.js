@@ -36,7 +36,7 @@ const watchSessions = new Map();
 
 // ── LOGIN ──
 router.get('/login', (req, res) => {
-  res.send(`<!DOCTYPE html><html><head><title>TWITCH FAM Admin</title><meta charset="UTF-8"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0e1021;display:flex;justify-content:center;align-items:center;height:100vh;font-family:'Segoe UI',sans-serif;color:#dde3f5}.box{background:#151929;border:1px solid #1f2640;border-radius:16px;padding:40px;width:320px}.logo{font-size:22px;font-weight:900;background:linear-gradient(90deg,#9146FF,#00d4c8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;text-align:center}.sub{font-size:11px;color:#4a5270;margin-bottom:24px;text-align:center;letter-spacing:1px}.err{color:#f87171;font-size:12px;margin-bottom:12px;text-align:center}label{display:block;font-size:10px;font-weight:700;color:#7a85a8;letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px}input{width:100%;background:#0d0f1e;border:1px solid #1f2640;border-radius:8px;padding:10px;color:#dde3f5;font-size:13px;outline:none;margin-bottom:12px}input:focus{border-color:#9146FF}button{width:100%;background:#9146FF;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:700;cursor:pointer}button:hover{background:#7c3aed}</style></head><body><div class="box"><div class="logo">TWITCH FAM</div><div class="sub">ADMIN DASHBOARD</div><form method="POST" action="/admin/login"><label>Username</label><input type="text" name="username" autocomplete="off"><label>Password</label><input type="password" name="password"><button>Login</button></form></div></body></html>`);
+  res.send('<!DOCTYPE html><html><head><title>TWITCH FAM Admin</title><meta charset="UTF-8"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0e1021;display:flex;justify-content:center;align-items:center;height:100vh;font-family:"Segoe UI",sans-serif;color:#dde3f5}.box{background:#151929;border:1px solid #1f2640;border-radius:16px;padding:40px;width:320px}.logo{font-size:22px;font-weight:900;background:linear-gradient(90deg,#9146FF,#00d4c8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;text-align:center}.sub{font-size:11px;color:#4a5270;margin-bottom:24px;text-align:center;letter-spacing:1px}label{display:block;font-size:10px;font-weight:700;color:#7a85a8;letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px}input{width:100%;background:#0d0f1e;border:1px solid #1f2640;border-radius:8px;padding:10px;color:#dde3f5;font-size:13px;outline:none;margin-bottom:12px}input:focus{border-color:#9146FF}button{width:100%;background:#9146FF;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:700;cursor:pointer}button:hover{background:#7c3aed}</style></head><body><div class="box"><div class="logo">TWITCH FAM</div><div class="sub">ADMIN DASHBOARD</div><form method="POST" action="/admin/login"><label>Username</label><input type="text" name="username" autocomplete="off"><label>Password</label><input type="password" name="password"><button>Login</button></form></div></body></html>');
 });
 
 router.get('/', (req, res) => res.redirect('/admin/login'));
@@ -46,7 +46,7 @@ router.post('/login', (req, res) => {
     req.session.adminAuth = true;
     res.redirect('/admin/dashboard');
   } else {
-    res.send(`<!DOCTYPE html><html><head><title>TWITCH FAM Admin</title><meta charset="UTF-8"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0e1021;display:flex;justify-content:center;align-items:center;height:100vh;font-family:'Segoe UI',sans-serif;color:#dde3f5}.box{background:#151929;border:1px solid #1f2640;border-radius:16px;padding:40px;width:320px}.logo{font-size:22px;font-weight:900;background:linear-gradient(90deg,#9146FF,#00d4c8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;text-align:center}.sub{font-size:11px;color:#4a5270;margin-bottom:24px;text-align:center;letter-spacing:1px}.err{color:#f87171;font-size:12px;margin-bottom:12px;text-align:center}label{display:block;font-size:10px;font-weight:700;color:#7a85a8;letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px}input{width:100%;background:#0d0f1e;border:1px solid #1f2640;border-radius:8px;padding:10px;color:#dde3f5;font-size:13px;outline:none;margin-bottom:12px}input:focus{border-color:#9146FF}button{width:100%;background:#9146FF;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:700;cursor:pointer}button:hover{background:#7c3aed}</style></head><body><div class="box"><div class="logo">TWITCH FAM</div><div class="sub">ADMIN DASHBOARD</div><div class="err">❌ Invalid credentials</div><form method="POST" action="/admin/login"><label>Username</label><input type="text" name="username" autocomplete="off"><label>Password</label><input type="password" name="password"><button>Login</button></form></div></body></html>`);
+    res.send('<!DOCTYPE html><html><head><title>TWITCH FAM Admin</title><meta charset="UTF-8"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0e1021;display:flex;justify-content:center;align-items:center;height:100vh;font-family:"Segoe UI",sans-serif;color:#dde3f5}.box{background:#151929;border:1px solid #1f2640;border-radius:16px;padding:40px;width:320px}.logo{font-size:22px;font-weight:900;background:linear-gradient(90deg,#9146FF,#00d4c8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;text-align:center}.sub{font-size:11px;color:#4a5270;margin-bottom:24px;text-align:center;letter-spacing:1px}.err{color:#f87171;font-size:12px;margin-bottom:12px;text-align:center}label{display:block;font-size:10px;font-weight:700;color:#7a85a8;letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px}input{width:100%;background:#0d0f1e;border:1px solid #1f2640;border-radius:8px;padding:10px;color:#dde3f5;font-size:13px;outline:none;margin-bottom:12px}input:focus{border-color:#9146FF}button{width:100%;background:#9146FF;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:700;cursor:pointer}button:hover{background:#7c3aed}</style></head><body><div class="box"><div class="logo">TWITCH FAM</div><div class="sub">ADMIN DASHBOARD</div><div class="err">Invalid credentials</div><form method="POST" action="/admin/login"><label>Username</label><input type="text" name="username" autocomplete="off"><label>Password</label><input type="password" name="password"><button>Login</button></form></div></body></html>');
   }
 });
 
@@ -55,318 +55,13 @@ router.get('/logout', (req, res) => {
   res.redirect('/admin/login');
 });
 
-// ── DASHBOARD PAGE (loads data via API) ──
+// ── DASHBOARD ──
 router.get('/dashboard', (req, res) => {
   if (!req.session?.adminAuth) return res.redirect('/admin/login');
-  res.send(`<!DOCTYPE html>
-<html>
-<head>
-<title>TWITCH FAM - Admin</title>
-<meta charset="UTF-8">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0e1021;color:#dde3f5;font-family:'Segoe UI',sans-serif;font-size:13px}
-.hdr{background:#151929;padding:16px 24px;border-bottom:1px solid #1f2640;display:flex;align-items:center;justify-content:space-between}
-.logo{font-size:20px;font-weight:900;background:linear-gradient(90deg,#9146FF,#00d4c8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.logout{background:transparent;border:1px solid #1f2640;color:#7a85a8;padding:6px 14px;border-radius:7px;font-size:12px;cursor:pointer;text-decoration:none}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:20px 24px}
-.stat{background:#151929;border:1px solid #1f2640;border-radius:10px;padding:14px;text-align:center}
-.stat-val{font-size:26px;font-weight:900;color:#9146FF}
-.stat-lbl{font-size:10px;color:#4a5270;margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
-.grid{padding:0 24px 40px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.card{background:#151929;border:1px solid #1f2640;border-radius:12px;padding:18px}
-.card h2{font-size:14px;font-weight:700;color:#9146FF;margin-bottom:14px}
-.full{grid-column:1/-1}
-table{width:100%;border-collapse:collapse}
-th{font-size:9px;font-weight:700;color:#4a5270;text-transform:uppercase;letter-spacing:.7px;padding:7px 6px;text-align:left;border-bottom:1px solid #1f2640}
-td{padding:9px 6px;border-bottom:1px solid rgba(31,38,64,0.4);vertical-align:middle}
-.badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600}
-.pt{background:rgba(145,70,255,.15);color:#9146FF;border:1px solid rgba(145,70,255,.3)}
-.pd{background:rgba(88,101,242,.15);color:#5865F2;border:1px solid rgba(88,101,242,.3)}
-.pp{background:rgba(0,212,200,.15);color:#00d4c8;border:1px solid rgba(0,212,200,.3)}
-.ps{background:rgba(248,113,113,.15);color:#f87171;border:1px solid rgba(248,113,113,.3)}
-.pa{background:rgba(35,209,139,.15);color:#23d18b;border:1px solid rgba(35,209,139,.3)}
-.rank{font-weight:900;color:#fbbf24}
-.ts{font-size:10px;color:#4a5270}
-.btn{padding:3px 9px;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid;font-family:inherit;margin-left:3px;background:transparent}
-.bv{color:#9146FF;border-color:rgba(145,70,255,.4)}
-.bs{color:#f87171;border-color:rgba(248,113,113,.4)}
-.bu{color:#23d18b;border-color:rgba(35,209,139,.4)}
-.be{color:#00d4c8;border-color:rgba(0,212,200,.4)}
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center}
-.overlay.on{display:flex}
-.modal{background:#151929;border:1px solid #1f2640;border-radius:14px;padding:28px;width:400px}
-.modal h3{font-size:15px;font-weight:700;margin-bottom:14px}
-select,input[type=text]{width:100%;background:#0d0f1e;border:1px solid #1f2640;border-radius:7px;padding:9px;color:#dde3f5;font-size:12px;outline:none;margin-bottom:12px;font-family:inherit}
-.mrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.bcn{background:transparent;color:#7a85a8;border:1px solid #1f2640;padding:9px;border-radius:7px;cursor:pointer;font-family:inherit;width:100%}
-.bco{background:#f87171;color:#fff;border:none;padding:9px;border-radius:7px;cursor:pointer;font-family:inherit;font-weight:700;width:100%}
-.loading{color:#4a5270;text-align:center;padding:20px}
-</style>
-</head>
-<body>
-
-<div class="hdr">
-  <div class="logo">TWITCH FAM</div>
-  <a href="/admin/logout" class="logout">Logout</a>
-</div>
-
-<div class="stats" id="stats"><div class="loading">Loading...</div></div>
-<div class="grid" id="grid"><div class="full loading">Loading data...</div></div>
-
-<div class="overlay" id="suspModal">
-  <div class="modal">
-    <h3 style="color:#f87171">Suspend User</h3>
-    <select id="suspDur">
-      <option value="1">1 hour</option>
-      <option value="6">6 hours</option>
-      <option value="12">12 hours</option>
-      <option value="24" selected>24 hours</option>
-      <option value="48">2 days</option>
-      <option value="72">3 days</option>
-      <option value="168">1 week</option>
-      <option value="permanent">Permanent</option>
-    </select>
-    <input type="text" id="suspReason" placeholder="Reason (optional)">
-    <div class="mrow">
-      <button class="bcn" onclick="closeModal('suspModal')">Cancel</button>
-      <button class="bco" onclick="doSuspend()">Suspend</button>
-    </div>
-  </div>
-</div>
-
-<div class="overlay" id="watchModal">
-  <div class="modal">
-    <h3 style="color:#9146FF">Watch Stats - <span id="watchTitle"></span></h3>
-    <div id="watchList" style="margin:12px 0;max-height:300px;overflow-y:auto"></div>
-    <button class="bcn" onclick="closeModal('watchModal')" style="width:100%">Close</button>
-  </div>
-</div>
-
-<script>
-var suspId = '';
-
-function fmt(m) {
-  if (!m) return '0m';
-  return m >= 60 ? Math.floor(m/60)+'h'+(m%60)+'m' : m+'m';
-}
-
-function e(id) { return document.getElementById(id); }
-
-function closeModal(id) { e(id).classList.remove('on'); }
-
-async function genKey(discordId, username) {
-  if (!confirm('Generate API key for ' + (username || discordId) + '?')) return;
-  const r = await fetch('/admin/apikeys/generate', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ discordId, discordUsername: username })
-  });
-  const d = await r.json();
-  if (d.success) {
-    alert('API Key generated!\n\n' + d.apiKey + '\n\nSend this to the user.');
-    load();
-  } else alert('Error: ' + d.error);
-}
-
-async function regenKey(discordId, username) {
-  if (!confirm('Regenerate key for ' + (username || discordId) + '? Old key will stop working.')) return;
-  const r = await fetch('/admin/apikeys/generate', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ discordId, discordUsername: username })
-  });
-  const d = await r.json();
-  if (d.success) {
-    alert('New API Key:\n\n' + d.apiKey + '\n\nOld key is now invalid.');
-    load();
-  } else alert('Error: ' + d.error);
-}
-
-async function revokeKey(discordId) {
-  if (!confirm('Revoke this API key? User will lose access.')) return;
-  const r = await fetch('/admin/apikeys/revoke', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ discordId })
-  });
-  const d = await r.json();
-  if (d.success) load();
-  else alert('Error: ' + d.error);
-}
-
-function openSuspend(id) {
-  suspId = id;
-  e('suspReason').value = '';
-  e('suspModal').classList.add('on');
-}
-
-function doSuspend() {
-  fetch('/admin/suspend', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ discordId: suspId, duration: e('suspDur').value, reason: e('suspReason').value })
-  }).then(function(r){ return r.json(); }).then(function(d){
-    if (d.success) { closeModal('suspModal'); load(); }
-    else alert('Error');
-  });
-}
-
-function doUnsuspend(id) {
-  if (!confirm('Unsuspend this user?')) return;
-  fetch('/admin/unsuspend', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ discordId: id })
-  }).then(function(r){ return r.json(); }).then(function(d){
-    if (d.success) load();
-  });
-}
-
-function editPts(id, current) {
-  var amt = prompt('Current: '+current+' pts\\nEnter amount to add/remove (+100 or -50):');
-  if (amt === null || amt === '') return;
-  var n = parseInt(amt);
-  if (isNaN(n)) { alert('Invalid number'); return; }
-  var reason = prompt('Reason (optional):') || 'Admin adjustment';
-  fetch('/admin/adjust-points', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ discordId: id, amount: n, reason: reason })
-  }).then(function(r){ return r.json(); }).then(function(d){
-    if (d.success) { alert('Done! New balance: '+d.newPoints+' pts'); load(); }
-    else alert('Error: '+(d.error||'unknown'));
-  });
-}
-
-function viewWatch(streamer) {
-  e('watchTitle').textContent = '@'+streamer;
-  e('watchList').innerHTML = '<div class="loading">Loading...</div>';
-  e('watchModal').classList.add('on');
-  fetch('/admin/watch-stats/'+streamer)
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if (!d.viewers || !d.viewers.length) {
-        e('watchList').innerHTML = '<div class="loading">No watch data yet</div>';
-        return;
-      }
-      e('watchList').innerHTML = d.viewers.map(function(v){
-        var mins = v.totalMinutes || 0;
-        var t = mins >= 60 ? Math.floor(mins/60)+'h '+(mins%60)+'min' : mins+'min';
-        return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(31,38,64,.4)"><span>'+(v.discordUsername||v._id.slice(-6))+'</span><span style="color:#00d4c8">'+t+'</span></div>';
-      }).join('');
-    });
-}
-
-function load() {
-  fetch('/admin/data')
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if (!d.success) { window.location='/admin/login'; return; }
-
-      var pr = d.profiles;
-      var lb = d.leaderboard;
-      var ac = d.activity;
-      var totalPts = lb.reduce(function(a,u){ return a+u.points; }, 0);
-      var totalChats = lb.reduce(function(a,u){ return a+u.totalChats; }, 0);
-      var totalWatch = Math.round(lb.reduce(function(a,u){ return a+(u.totalWatchMinutes||0); }, 0)/60);
-
-      e('stats').innerHTML =
-        '<div class="stat"><div class="stat-val">'+pr.length+'</div><div class="stat-lbl">Users</div></div>'+
-        '<div class="stat"><div class="stat-val">'+totalPts.toLocaleString()+'</div><div class="stat-lbl">Total Points</div></div>'+
-        '<div class="stat"><div class="stat-val">'+totalChats.toLocaleString()+'</div><div class="stat-lbl">Total Chats</div></div>'+
-        '<div class="stat"><div class="stat-val">'+totalWatch+'h</div><div class="stat-lbl">Watch Time</div></div>';
-
-      // Users
-      var uh = '<div class="card full"><h2>Users ('+pr.length+')</h2><table><tr><th>#</th><th>Twitch</th><th>Display Name</th><th>Mood</th><th>Lang</th><th>Game</th><th>Speed</th><th>Chat</th><th>Watch</th><th>Status</th><th>Actions</th></tr>';
-      pr.forEach(function(u, i){
-        var pts = lb.find(function(p){ return p.discordId === u.discordId; });
-        var susp = pts && pts.suspended;
-        var w = fmt(pts ? pts.totalWatchMinutes : 0);
-        var mood = (u.moodTags||[]).join(', ') || '-';
-        var lang = (u.langTags||[]).join(', ') || '-';
-        var game = (u.gameTags||[]).join(', ') || '-';
-        var speed = (u.minSec||20)+'s-'+(u.maxSec||70)+'s';
-        var chatInfo = (u.chatSpeed||'slow')+' / '+(u.chatType||'text')+' / emoji:'+(u.emojiMode||'both');
-        uh += '<tr>';
-        uh += '<td>'+(i+1)+'</td>';
-        uh += '<td><span class="badge pt">@'+u.twitchUsername+'</span></td>';
-        uh += '<td style="color:#fbbf24;font-weight:700">'+(u.displayName||'-')+'</td>';
-        uh += '<td style="font-size:11px;color:#9146FF">'+mood+'</td>';
-        uh += '<td style="font-size:11px;color:#00d4c8">'+lang+'</td>';
-        uh += '<td style="font-size:11px;color:#23d18b">'+game+'</td>';
-        uh += '<td style="font-size:11px;color:#4a5270">'+speed+'</td>';
-        uh += '<td style="font-size:10px;color:#4a5270">'+chatInfo+'</td>';
-        uh += '<td style="color:#00d4c8">'+w+'</td>';
-        uh += '<td>'+(susp ? '<span class="badge ps">Suspended</span>' : '<span class="badge pa">Active</span>')+'</td>';
-        uh += '<td>';
-        uh += '<button class="btn bv" onclick="viewWatch(this.dataset.s)" data-s="'+u.twitchUsername+'">Watch</button>';
-        if (susp) uh += '<button class="btn bu" onclick="doUnsuspend(this.dataset.id)" data-id="'+u.discordId+'">Unsuspend</button>';
-        else uh += '<button class="btn bs" onclick="openSuspend(this.dataset.id)" data-id="'+u.discordId+'">Suspend</button>';
-        uh += '<button class="btn bv" data-id="'+u.discordId+'" data-name="'+u.twitchUsername+'" onclick="genKey(this.dataset.id, this.dataset.name)" style="margin-left:4px">🔑 Key</button>';
-        uh += '</td></tr>';
-      });
-      uh += '</table></div>';
-
-      // Leaderboard
-      var lh = '<div class="card"><h2>Leaderboard</h2><table><tr><th>Rank</th><th>User</th><th>Points</th><th>Chats</th><th>Watch</th></tr>';
-      if (!lb.length) lh += '<tr><td colspan="5" style="color:#4a5270;text-align:center;padding:16px">No points yet</td></tr>';
-      lb.forEach(function(u, i){
-        lh += '<tr>';
-        lh += '<td class="rank">#'+(i+1)+'</td>';
-        lh += '<td>'+(u.discordUsername||u.discordId.slice(-6))+(u.twitchUsername ? ' <span class="badge pt">@'+u.twitchUsername+'</span>' : '')+'</td>';
-        lh += '<td><span class="badge pp">'+u.points.toLocaleString()+' pts</span> <button class="btn be" data-id="'+u.discordId+'" data-pts="'+u.points+'" onclick="editPts(this.dataset.id,this.dataset.pts)">Edit</button></td>';
-        lh += '<td>'+u.totalChats+'</td>';
-        lh += '<td style="color:#00d4c8">'+fmt(u.totalWatchMinutes)+'</td>';
-        lh += '</tr>';
-      });
-      lh += '</table></div>';
-
-      // Activity
-      var ah = '<div class="card full"><h2>Recent Activity</h2><table><tr><th>Time</th><th>User</th><th>Action</th><th>Target</th><th>Pts</th></tr>';
-      if (!ac.length) ah += '<tr><td colspan="5" style="color:#4a5270;text-align:center;padding:16px">No activity</td></tr>';
-      ac.forEach(function(a){
-        var act = {chat_sent:'Chat',stream_opened:'Opened',watch_session:'Watch '+a.watchMinutes+'min',stream_supported:'Supported',admin_add:'Admin +',admin_remove:'Admin -'}[a.action] || a.action;
-        ah += '<tr>';
-        ah += '<td class="ts">'+new Date(a.timestamp).toLocaleTimeString()+'</td>';
-        ah += '<td>'+(a.discordUsername||a.discordId.slice(-6))+'</td>';
-        ah += '<td>'+act+'</td>';
-        ah += '<td>'+(a.targetStreamer ? '<span class="badge pt">@'+a.targetStreamer+'</span>' : '-')+'</td>';
-        ah += '<td>'+(a.points>0?'<span class="badge pp">+'+a.points+'</span>':a.points<0?'<span class="badge ps">'+a.points+'</span>':'-')+'</td>';
-        ah += '</tr>';
-      });
-      ah += '</table></div>';
-
-      // API Keys table
-  var ak = DATA.apiKeys || [];
-  var kh = '<div class="card full"><h2>API Keys ('+ak.length+')</h2><table><tr><th>User</th><th>API Key</th><th>Status</th><th>Last Used</th><th>Actions</th></tr>';
-  if (!ak.length) {
-    kh += '<tr><td colspan="5" style="color:#4a5270;text-align:center;padding:16px">No keys generated yet</td></tr>';
-  } else {
-    ak.forEach(function(k) {
-      var lastUsed = k.lastUsed ? new Date(k.lastUsed).toLocaleDateString() : 'Never';
-      kh += '<tr>';
-      kh += '<td>'+(k.discordUsername||k.discordId.slice(-6))+'</td>';
-      kh += '<td><code style="font-size:10px;color:#00d4c8;background:#0d0f1e;padding:2px 6px;border-radius:4px">'+k.apiKey+'</code></td>';
-      kh += '<td>'+(k.active ? '<span class="badge pa">Active</span>' : '<span class="badge ps">Revoked</span>')+'</td>';
-      kh += '<td style="font-size:11px;color:#4a5270">'+lastUsed+'</td>';
-      kh += '<td>';
-      if (k.active) {
-        kh += '<button class="btn bs" data-id="'+k.discordId+'" onclick="revokeKey(this.dataset.id)">Revoke</button>';
-      }
-      kh += '<button class="btn be" data-id="'+k.discordId+'" data-name="'+k.discordUsername+'" onclick="regenKey(this.dataset.id, this.dataset.name)" style="margin-left:4px">Regen</button>';
-      kh += '</td></tr>';
-    });
-  }
-  kh += '</table></div>';
-
-  e('grid').innerHTML = uh + lh + kh + ah;
-    })
-    .catch(function(){ e('grid').innerHTML = '<div class="full loading">Failed to load data</div>'; });
-}
-
-load();
-setInterval(load, 30000);
-</script>
-</body>
-</html>`);
+  res.send('<!DOCTYPE html><html><head><title>TWITCH FAM - Admin</title><meta charset="UTF-8"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0e1021;color:#dde3f5;font-family:"Segoe UI",sans-serif;font-size:13px}.hdr{background:#151929;padding:16px 24px;border-bottom:1px solid #1f2640;display:flex;align-items:center;justify-content:space-between}.logo{font-size:20px;font-weight:900;background:linear-gradient(90deg,#9146FF,#00d4c8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}.logout{background:transparent;border:1px solid #1f2640;color:#7a85a8;padding:6px 14px;border-radius:7px;font-size:12px;cursor:pointer;text-decoration:none}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:20px 24px}.stat{background:#151929;border:1px solid #1f2640;border-radius:10px;padding:14px;text-align:center}.stat-val{font-size:26px;font-weight:900;color:#9146FF}.stat-lbl{font-size:10px;color:#4a5270;margin-top:3px;text-transform:uppercase;letter-spacing:.5px}.grid{padding:0 24px 40px;display:grid;grid-template-columns:1fr 1fr;gap:16px}.card{background:#151929;border:1px solid #1f2640;border-radius:12px;padding:18px}.card h2{font-size:14px;font-weight:700;color:#9146FF;margin-bottom:14px}.full{grid-column:1/-1}table{width:100%;border-collapse:collapse}th{font-size:9px;font-weight:700;color:#4a5270;text-transform:uppercase;letter-spacing:.7px;padding:7px 6px;text-align:left;border-bottom:1px solid #1f2640}td{padding:9px 6px;border-bottom:1px solid rgba(31,38,64,0.4);vertical-align:middle}.badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600}.pt{background:rgba(145,70,255,.15);color:#9146FF;border:1px solid rgba(145,70,255,.3)}.pp{background:rgba(0,212,200,.15);color:#00d4c8;border:1px solid rgba(0,212,200,.3)}.ps{background:rgba(248,113,113,.15);color:#f87171;border:1px solid rgba(248,113,113,.3)}.pa{background:rgba(35,209,139,.15);color:#23d18b;border:1px solid rgba(35,209,139,.3)}.rank{font-weight:900;color:#fbbf24}.ts{font-size:10px;color:#4a5270}.btn{padding:3px 9px;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid;font-family:inherit;margin-left:3px;background:transparent}.bv{color:#9146FF;border-color:rgba(145,70,255,.4)}.bs{color:#f87171;border-color:rgba(248,113,113,.4)}.bu{color:#23d18b;border-color:rgba(35,209,139,.4)}.be{color:#00d4c8;border-color:rgba(0,212,200,.4)}.bk{color:#fbbf24;border-color:rgba(251,191,36,.4)}.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center}.overlay.on{display:flex}.modal{background:#151929;border:1px solid #1f2640;border-radius:14px;padding:28px;width:420px;max-height:80vh;overflow-y:auto}.modal h3{font-size:15px;font-weight:700;margin-bottom:14px}select,input[type=text]{width:100%;background:#0d0f1e;border:1px solid #1f2640;border-radius:7px;padding:9px;color:#dde3f5;font-size:12px;outline:none;margin-bottom:12px;font-family:inherit}.mrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}.bcn{background:transparent;color:#7a85a8;border:1px solid #1f2640;padding:9px;border-radius:7px;cursor:pointer;font-family:inherit;width:100%}.bco{background:#f87171;color:#fff;border:none;padding:9px;border-radius:7px;cursor:pointer;font-family:inherit;font-weight:700;width:100%}.loading{color:#4a5270;text-align:center;padding:20px}code{font-size:10px;color:#00d4c8;background:#0d0f1e;padding:2px 6px;border-radius:4px;word-break:break-all}</style></head><body><div class="hdr"><div class="logo">TWITCH FAM</div><a href="/admin/logout" class="logout">Logout</a></div><div class="stats" id="stats"><div class="loading">Loading...</div></div><div class="grid" id="grid"><div class="full loading">Loading data...</div></div><div class="overlay" id="suspModal"><div class="modal"><h3 style="color:#f87171">Suspend User</h3><select id="suspDur"><option value="1">1 hour</option><option value="6">6 hours</option><option value="12">12 hours</option><option value="24" selected>24 hours</option><option value="48">2 days</option><option value="72">3 days</option><option value="168">1 week</option><option value="permanent">Permanent</option></select><input type="text" id="suspReason" placeholder="Reason (optional)"><div class="mrow"><button class="bcn" onclick="closeModal(\'suspModal\')">Cancel</button><button class="bco" onclick="doSuspend()">Suspend</button></div></div></div><div class="overlay" id="watchModal"><div class="modal"><h3 style="color:#9146FF">Watch Stats - <span id="watchTitle"></span></h3><div id="watchList" style="margin:12px 0;max-height:300px;overflow-y:auto"></div><button class="bcn" onclick="closeModal(\'watchModal\')" style="width:100%">Close</button></div></div><script>var suspId="";function fmt(m){if(!m)return"0m";return m>=60?Math.floor(m/60)+"h"+(m%60)+"m":m+"m";}function e(id){return document.getElementById(id);}function closeModal(id){e(id).classList.remove("on");}function openSuspend(id){suspId=id;e("suspReason").value="";e("suspModal").classList.add("on");}function doSuspend(){fetch("/admin/suspend",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({discordId:suspId,duration:e("suspDur").value,reason:e("suspReason").value})}).then(function(r){return r.json();}).then(function(d){if(d.success){closeModal("suspModal");load();}else alert("Error");});}function doUnsuspend(id){if(!confirm("Unsuspend?"))return;fetch("/admin/unsuspend",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({discordId:id})}).then(function(r){return r.json();}).then(function(d){if(d.success)load();});}function editPts(id,current){var amt=prompt("Current: "+current+" pts\nEnter amount (+100 or -50):");if(amt===null||amt==="")return;var n=parseInt(amt);if(isNaN(n)){alert("Invalid");return;}var reason=prompt("Reason:")||"Admin";fetch("/admin/adjust-points",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({discordId:id,amount:n,reason:reason})}).then(function(r){return r.json();}).then(function(d){if(d.success){alert("Done! New: "+d.newPoints+" pts");load();}else alert("Error: "+(d.error||"unknown"));});}function viewWatch(streamer){e("watchTitle").textContent="@"+streamer;e("watchList").innerHTML="<div class=\'loading\'>Loading...</div>";e("watchModal").classList.add("on");fetch("/admin/watch-stats/"+streamer).then(function(r){return r.json();}).then(function(d){if(!d.viewers||!d.viewers.length){e("watchList").innerHTML="<div class=\'loading\'>No watch data yet</div>";return;}e("watchList").innerHTML=d.viewers.map(function(v){var mins=v.totalMinutes||0;var t=mins>=60?Math.floor(mins/60)+"h "+(mins%60)+"min":mins+"min";return"<div style=\'display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(31,38,64,.4)\'><span>"+(v.discordUsername||v._id.slice(-6))+"</span><span style=\'color:#00d4c8\'>"+t+"</span></div>";}).join("");});}function genKey(discordId,username){if(!confirm("Generate API key for "+(username||discordId)+"?"))return;fetch("/apikeys/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({discordId:discordId,discordUsername:username})}).then(function(r){return r.json();}).then(function(d){if(d.success){alert("API Key:\n\n"+d.apiKey+"\n\nSend to user.");load();}else alert("Error: "+d.error);});}function revokeKey(discordId){if(!confirm("Revoke this key?"))return;fetch("/apikeys/revoke",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({discordId:discordId})}).then(function(r){return r.json();}).then(function(d){if(d.success)load();});}function load(){fetch("/admin/data").then(function(r){return r.json();}).then(function(d){if(!d.success){window.location="/admin/login";return;}var pr=d.profiles;var lb=d.leaderboard;var ac=d.activity;var ak=d.apiKeys||[];var totalPts=lb.reduce(function(a,u){return a+u.points;},0);var totalChats=lb.reduce(function(a,u){return a+u.totalChats;},0);var totalWatch=Math.round(lb.reduce(function(a,u){return a+(u.totalWatchMinutes||0);},0)/60);e("stats").innerHTML="<div class=\'stat\'><div class=\'stat-val\'>"+pr.length+"</div><div class=\'stat-lbl\'>Users</div></div><div class=\'stat\'><div class=\'stat-val\'>"+totalPts.toLocaleString()+"</div><div class=\'stat-lbl\'>Total Points</div></div><div class=\'stat\'><div class=\'stat-val\'>"+totalChats.toLocaleString()+"</div><div class=\'stat-lbl\'>Total Chats</div></div><div class=\'stat\'><div class=\'stat-val\'>"+totalWatch+"h</div><div class=\'stat-lbl\'>Watch Time</div></div>";var uh="<div class=\'card full\'><h2>Users ("+pr.length+")</h2><table><tr><th>#</th><th>Twitch</th><th>Name</th><th>Mood</th><th>Lang</th><th>Game</th><th>Speed</th><th>Watch</th><th>Status</th><th>Actions</th></tr>";pr.forEach(function(u,i){var pts=lb.find(function(p){return p.discordId===u.discordId;});var susp=pts&&pts.suspended;var w=fmt(pts?pts.totalWatchMinutes:0);var mood=(u.moodTags||[]).join(", ")||"-";var lang=(u.langTags||[]).join(", ")||"-";var game=(u.gameTags||[]).join(", ")||"-";var speed=(u.minSec||20)+"s-"+(u.maxSec||70)+"s";uh+="<tr><td>"+(i+1)+"</td><td><span class=\'badge pt\'>@"+u.twitchUsername+"</span></td><td style=\'color:#fbbf24;font-weight:700\'>"+(u.displayName||"-")+"</td><td style=\'font-size:11px;color:#9146FF\'>"+mood+"</td><td style=\'font-size:11px;color:#00d4c8\'>"+lang+"</td><td style=\'font-size:11px;color:#23d18b\'>"+game+"</td><td style=\'font-size:11px;color:#4a5270\'>"+speed+"</td><td style=\'color:#00d4c8\'>"+w+"</td><td>"+(susp?"<span class=\'badge ps\'>Suspended</span>":"<span class=\'badge pa\'>Active</span>")+"</td><td><button class=\'btn bv\' data-s=\'"+u.twitchUsername+"\' onclick=\'viewWatch(this.dataset.s)\'>Watch</button>";if(susp){uh+="<button class=\'btn bu\' data-id=\'"+u.discordId+"\' onclick=\'doUnsuspend(this.dataset.id)\'>Unsuspend</button>";}else{uh+="<button class=\'btn bs\' data-id=\'"+u.discordId+"\' onclick=\'openSuspend(this.dataset.id)\'>Suspend</button>";}uh+="<button class=\'btn bk\' data-id=\'"+u.discordId+"\' data-name=\'"+u.twitchUsername+"\' onclick=\'genKey(this.dataset.id,this.dataset.name)\'>Key</button></td></tr>";});uh+="</table></div>";var lh="<div class=\'card\'><h2>Leaderboard</h2><table><tr><th>Rank</th><th>User</th><th>Points</th><th>Chats</th><th>Watch</th></tr>";if(!lb.length)lh+="<tr><td colspan=\'5\' style=\'color:#4a5270;text-align:center;padding:16px\'>No points yet</td></tr>";lb.forEach(function(u,i){lh+="<tr><td class=\'rank\'>#"+(i+1)+"</td><td>"+(u.discordUsername||u.discordId.slice(-6))+(u.twitchUsername?" <span class=\'badge pt\'>@"+u.twitchUsername+"</span>":"")+"</td><td><span class=\'badge pp\'>"+u.points.toLocaleString()+" pts</span> <button class=\'btn be\' data-id=\'"+u.discordId+"\' data-pts=\'"+u.points+"\' onclick=\'editPts(this.dataset.id,this.dataset.pts)\'>Edit</button></td><td>"+u.totalChats+"</td><td style=\'color:#00d4c8\'>"+fmt(u.totalWatchMinutes)+"</td></tr>";});lh+="</table></div>";var kh="<div class=\'card\'><h2>API Keys ("+ak.length+")</h2><table><tr><th>User</th><th>Key</th><th>Status</th><th>Last Used</th><th>Actions</th></tr>";if(!ak.length)kh+="<tr><td colspan=\'5\' style=\'color:#4a5270;text-align:center;padding:16px\'>No keys yet — click Key button on a user</td></tr>";ak.forEach(function(k){var lu=k.lastUsed?new Date(k.lastUsed).toLocaleDateString():"Never";kh+="<tr><td>"+(k.discordUsername||k.discordId.slice(-6))+"</td><td><code>"+k.apiKey+"</code></td><td>"+(k.active?"<span class=\'badge pa\'>Active</span>":"<span class=\'badge ps\'>Revoked</span>")+"</td><td class=\'ts\'>"+lu+"</td><td>"+(k.active?"<button class=\'btn bs\' data-id=\'"+k.discordId+"\' onclick=\'revokeKey(this.dataset.id)\'>Revoke</button>":"")+"<button class=\'btn bk\' data-id=\'"+k.discordId+"\' data-name=\'"+k.discordUsername+"\' onclick=\'genKey(this.dataset.id,this.dataset.name)\'>Regen</button></td></tr>";});kh+="</table></div>";var ah="<div class=\'card full\'><h2>Recent Activity</h2><table><tr><th>Time</th><th>User</th><th>Action</th><th>Target</th><th>Pts</th></tr>";if(!ac.length)ah+="<tr><td colspan=\'5\' style=\'color:#4a5270;text-align:center;padding:16px\'>No activity</td></tr>";ac.forEach(function(a){var act={chat_sent:"Chat",stream_opened:"Opened",watch_session:"Watch "+a.watchMinutes+"min",stream_supported:"Supported",admin_add:"Admin +",admin_remove:"Admin -"}[a.action]||a.action;ah+="<tr><td class=\'ts\'>"+new Date(a.timestamp).toLocaleTimeString()+"</td><td>"+(a.discordUsername||a.discordId.slice(-6))+"</td><td>"+act+"</td><td>"+(a.targetStreamer?"<span class=\'badge pt\'>@"+a.targetStreamer+"</span>":"-")+"</td><td>"+(a.points>0?"<span class=\'badge pp\'>+"+a.points+"</span>":a.points<0?"<span class=\'badge ps\'>"+a.points+"</span>":"-")+"</td></tr>";});ah+="</table></div>";e("grid").innerHTML=uh+lh+kh+ah;}).catch(function(){e("grid").innerHTML="<div class=\'full loading\'>Failed to load data</div>";});}load();setInterval(load,30000);</script></body></html>');
 });
 
-// ── DATA API (used by dashboard JS) ──
+// ── DATA API ──
 router.get('/data', async (req, res) => {
   if (!req.session?.adminAuth) return res.json({ success: false });
   try {
@@ -376,9 +71,11 @@ router.get('/data', async (req, res) => {
     const activity = await Activity.find().sort({ timestamp: -1 }).limit(50);
     await Points.updateMany({ suspended: true, suspendedUntil: { $lt: new Date() } }, { $set: { suspended: false, suspendedUntil: null } });
 
-    // Get API keys
-    const { ApiKey } = require('./apikeys');
-    const apiKeys = await ApiKey.find().sort({ createdAt: -1 });
+    let apiKeys = [];
+    try {
+      const { ApiKey } = require('./apikeys');
+      apiKeys = await ApiKey.find().sort({ createdAt: -1 });
+    } catch(e) {}
 
     res.json({
       success: true,
@@ -387,7 +84,6 @@ router.get('/data', async (req, res) => {
         discordUsername: String(k.discordUsername||''),
         apiKey: String(k.apiKey||''),
         active: Boolean(k.active),
-        createdAt: k.createdAt,
         lastUsed: k.lastUsed
       })),
       profiles: profiles.map(u => ({
@@ -401,14 +97,7 @@ router.get('/data', async (req, res) => {
         maxSec: u.maxSec||70,
         chatType: String(u.chatType||''),
         emojiMode: String(u.emojiMode||''),
-        chatSpeed: String(u.chatSpeed||'slow'),
-        msgRange: u.msgRange||2,
-        textRatio: u.textRatio||75,
-        shortRatio: u.shortRatio||42,
-        quietHours: String(u.quietHours||'disabled'),
-        safetyCeiling: String(u.safetyCeiling||'disabled'),
-        maxHour: u.maxHour||120,
-        maxDay: u.maxDay||1000
+        chatSpeed: String(u.chatSpeed||'slow')
       })),
       leaderboard: leaderboard.map(u => ({
         discordId: String(u.discordId||''),
