@@ -15,6 +15,7 @@ const aiRoute = require('./routes/ai');
 const liveRoute = require('./routes/live');
 const twitchAuthRoute = require('./routes/twitch_auth');
 const adminRoute = require('./routes/admin');
+const apikeysRoute = require('./routes/apikeys'); // NEW
 const { initSocket } = require('./socket/socket');
 const twitchClient = require('./twitch/twitchClient');
 const { startAutoChatLoop } = require('./queue/autoChatLoop');
@@ -69,6 +70,7 @@ app.use('/ai', aiRoute);
 app.use('/live', liveRoute);
 app.use('/auth/twitch', twitchAuthRoute);
 app.use('/admin', adminRoute);
+app.use('/apikeys', apikeysRoute); // NEW
 
 // ROOT
 app.get('/', (req, res) => {
