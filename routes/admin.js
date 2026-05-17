@@ -177,6 +177,22 @@ function viewWatch(streamer) {
     });
 }
 
+function createNewKey() {
+  var discordId = document.getElementById('newKeyDiscordId') ? document.getElementById('newKeyDiscordId').value.trim() : '';
+  var username = document.getElementById('newKeyUsername') ? document.getElementById('newKeyUsername').value.trim() : '';
+  if (!discordId) { alert('Enter a Discord ID first'); return; }
+  if (discordId.length < 17 || discordId.length > 19) { alert('Discord ID must be 17-19 digits'); return; }
+  fetch('/apikeys/generate', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ discordId: discordId, discordUsername: username })
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if (d.success) {
+      alert('API Key created!\n\n' + d.apiKey + '\n\nSend this to the user.');
+      load();
+    } else alert('Error: ' + d.error);
+  });
+}
+
 function genKey(discordId, username) {
   if (!confirm('Generate API key for ' + (username || discordId) + '?')) return;
   fetch('/apikeys/generate', {
@@ -265,8 +281,13 @@ function load() {
       lh += '</table></div>';
 
       // API Keys
-      var kh = '<div class="card"><h2>API Keys (' + ak.length + ')</h2><table>' +
-        '<tr><th>User</th><th>Key</th><th>Status</th><th>Last Used</th><th>Actions</th></tr>';
+      var kh = '<div class="card"><h2>API Keys (' + ak.length + ')</h2>' +
+        '<div style="display:flex;gap:8px;margin-bottom:14px">' +
+        '<input type="text" id="newKeyDiscordId" placeholder="Discord ID (17-19 digits)" style="flex:1;background:#0d0f1e;border:1px solid #1f2640;border-radius:7px;padding:8px;color:#dde3f5;font-size:12px;outline:none">' +
+        '<input type="text" id="newKeyUsername" placeholder="Username (optional)" style="flex:1;background:#0d0f1e;border:1px solid #1f2640;border-radius:7px;padding:8px;color:#dde3f5;font-size:12px;outline:none">' +
+        '<button class="btn bk" onclick="createNewKey()" style="padding:8px 14px;white-space:nowrap">+ Create Key</button>' +
+        '</div>' +
+        '<table><tr><th>User</th><th>Key</th><th>Status</th><th>Last Used</th><th>Actions</th></tr>';
       if (!ak.length) kh += '<tr><td colspan="5" style="color:#4a5270;text-align:center;padding:16px">No keys yet — click Key on a user</td></tr>';
       ak.forEach(function(k) {
         var lu = k.lastUsed ? new Date(k.lastUsed).toLocaleDateString() : 'Never';
