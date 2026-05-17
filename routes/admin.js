@@ -155,6 +155,43 @@ function e(id) { return document.getElementById(id); }
 
 function closeModal(id) { e(id).classList.remove('on'); }
 
+async function genKey(discordId, username) {
+  if (!confirm('Generate API key for ' + (username || discordId) + '?')) return;
+  const r = await fetch('/admin/apikeys/generate', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ discordId, discordUsername: username })
+  });
+  const d = await r.json();
+  if (d.success) {
+    alert('API Key generated!\n\n' + d.apiKey + '\n\nSend this to the user.');
+    load();
+  } else alert('Error: ' + d.error);
+}
+
+async function regenKey(discordId, username) {
+  if (!confirm('Regenerate key for ' + (username || discordId) + '? Old key will stop working.')) return;
+  const r = await fetch('/admin/apikeys/generate', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ discordId, discordUsername: username })
+  });
+  const d = await r.json();
+  if (d.success) {
+    alert('New API Key:\n\n' + d.apiKey + '\n\nOld key is now invalid.');
+    load();
+  } else alert('Error: ' + d.error);
+}
+
+async function revokeKey(discordId) {
+  if (!confirm('Revoke this API key? User will lose access.')) return;
+  const r = await fetch('/admin/apikeys/revoke', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ discordId })
+  });
+  const d = await r.json();
+  if (d.success) load();
+  else alert('Error: ' + d.error);
+}
+
 function openSuspend(id) {
   suspId = id;
   e('suspReason').value = '';
@@ -260,6 +297,7 @@ function load() {
         uh += '<button class="btn bv" onclick="viewWatch(this.dataset.s)" data-s="'+u.twitchUsername+'">Watch</button>';
         if (susp) uh += '<button class="btn bu" onclick="doUnsuspend(this.dataset.id)" data-id="'+u.discordId+'">Unsuspend</button>';
         else uh += '<button class="btn bs" onclick="openSuspend(this.dataset.id)" data-id="'+u.discordId+'">Suspend</button>';
+        uh += '<button class="btn bv" data-id="'+u.discordId+'" data-name="'+u.twitchUsername+'" onclick="genKey(this.dataset.id, this.dataset.name)" style="margin-left:4px">🔑 Key</button>';
         uh += '</td></tr>';
       });
       uh += '</table></div>';
@@ -293,7 +331,30 @@ function load() {
       });
       ah += '</table></div>';
 
-      e('grid').innerHTML = uh + lh + ah;
+      // API Keys table
+  var ak = DATA.apiKeys || [];
+  var kh = '<div class="card full"><h2>API Keys ('+ak.length+')</h2><table><tr><th>User</th><th>API Key</th><th>Status</th><th>Last Used</th><th>Actions</th></tr>';
+  if (!ak.length) {
+    kh += '<tr><td colspan="5" style="color:#4a5270;text-align:center;padding:16px">No keys generated yet</td></tr>';
+  } else {
+    ak.forEach(function(k) {
+      var lastUsed = k.lastUsed ? new Date(k.lastUsed).toLocaleDateString() : 'Never';
+      kh += '<tr>';
+      kh += '<td>'+(k.discordUsername||k.discordId.slice(-6))+'</td>';
+      kh += '<td><code style="font-size:10px;color:#00d4c8;background:#0d0f1e;padding:2px 6px;border-radius:4px">'+k.apiKey+'</code></td>';
+      kh += '<td>'+(k.active ? '<span class="badge pa">Active</span>' : '<span class="badge ps">Revoked</span>')+'</td>';
+      kh += '<td style="font-size:11px;color:#4a5270">'+lastUsed+'</td>';
+      kh += '<td>';
+      if (k.active) {
+        kh += '<button class="btn bs" data-id="'+k.discordId+'" onclick="revokeKey(this.dataset.id)">Revoke</button>';
+      }
+      kh += '<button class="btn be" data-id="'+k.discordId+'" data-name="'+k.discordUsername+'" onclick="regenKey(this.dataset.id, this.dataset.name)" style="margin-left:4px">Regen</button>';
+      kh += '</td></tr>';
+    });
+  }
+  kh += '</table></div>';
+
+  e('grid').innerHTML = uh + lh + kh + ah;
     })
     .catch(function(){ e('grid').innerHTML = '<div class="full loading">Failed to load data</div>'; });
 }
@@ -315,8 +376,20 @@ router.get('/data', async (req, res) => {
     const activity = await Activity.find().sort({ timestamp: -1 }).limit(50);
     await Points.updateMany({ suspended: true, suspendedUntil: { $lt: new Date() } }, { $set: { suspended: false, suspendedUntil: null } });
 
+    // Get API keys
+    const { ApiKey } = require('./apikeys');
+    const apiKeys = await ApiKey.find().sort({ createdAt: -1 });
+
     res.json({
       success: true,
+      apiKeys: apiKeys.map(k => ({
+        discordId: String(k.discordId||''),
+        discordUsername: String(k.discordUsername||''),
+        apiKey: String(k.apiKey||''),
+        active: Boolean(k.active),
+        createdAt: k.createdAt,
+        lastUsed: k.lastUsed
+      })),
       profiles: profiles.map(u => ({
         discordId: String(u.discordId||''),
         twitchUsername: String(u.twitchUsername||''),
