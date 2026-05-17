@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>TWITCH FAM - Admin</title>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="/admin/style.css">
+</head>
+<body>
+
+<div class="overlay" id="suspModal">
+  <div class="modal">
+    <h3 style="color:#f87171">Suspend User</h3>
+    <select id="suspDur">
+      <option value="1">1 hour</option><option value="6">6 hours</option>
+      <option value="12">12 hours</option><option value="24" selected>24 hours</option>
+      <option value="48">2 days</option><option value="72">3 days</option>
+      <option value="168">1 week</option><option value="permanent">Permanent</option>
+    </select>
+    <input type="text" id="suspReason" placeholder="Reason (optional)">
+    <div class="mrow">
+      <button class="bcn" onclick="closeModal()">Cancel</button>
+      <button class="bco" onclick="doSuspend()">Suspend</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="watchModal">
+  <div class="modal">
+    <h3 style="color:#9146FF">Watch Stats - <span id="watchTitle"></span></h3>
+    <div id="watchList" style="margin:12px 0;max-height:300px;overflow-y:auto"></div>
+    <button class="bcn" onclick="closeWatch()" style="width:100%">Close</button>
+  </div>
+</div>
+
+<div class="hdr">
+  <div class="logo">TWITCH FAM</div>
+  <a href="/admin/logout" class="logout">Logout</a>
+</div>
+
+<div class="stats" id="stats"><div class="loading">Loading...</div></div>
+<div class="grid" id="content"><div class="full loading">Loading data...</div></div>
+
+<script>
+var suspId = '';
+
+function closeModal() { document.getElementById('suspModal').classList.remove('on'); }
+function closeWatch() { document.getElementById('watchModal').classList.remove('on'); }
+
+function openSuspend(id) {
+  suspId = id;
+  document.getElementById('suspReason').value = '';
+  document.getElementById('suspModal').classList.add('on');
+}
+
+function doSuspend() {
+  fetch('/admin/suspend', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ discordId: suspId, duration: document.getElementById('suspDur').value, reason: document.getElementById('suspReason').value })
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d.success) { closeModal(); load(); } else alert('Error');
+  });
+}
+
+function doUnsuspend(id) {
+  if (!confirm('Unsuspend?')) return;
+  fetch('/admin/unsuspend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ discordId: id }) })
+    .then(function(r) { return r.json(); }).then(function(d) { if (d.success) load(); });
+}
+
+function editPts(id, current) {
+  var amt = prompt('Current: ' + current + ' pts\nAmount (+100 or -50):');
+  if (!amt) return;
+  var n = parseInt(amt);
+  if (isNaN(n)) { alert('Invalid'); return; }
+  var reason = prompt('Reason:') || 'Admin';
+  fetch('/admin/adjust-points', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ discordId: id, amount: n, reason: reason }) })
+    .then(function(r) { return r.json(); }).then(function(d) {
+      if (d.success) { alert('Done! New: ' + d.newPoints + ' pts'); load(); }
+      else alert('Error: ' + (d.error || ''));
+    });
+}
+
+function viewWatch(streamer) {
+  document.getElementById('watchTitle').textContent = '@' + streamer;
+  document.getElementById('watchList').innerHTML = '<div class="loading">Loading...</div>';
+  document.getElementById('watchModal').classList.add('on');
+  fetch('/admin/watch-stats/' + streamer).then(function(r) { return r.json(); }).then(function(d) {
+    if (!d.viewers || !d.viewers.length) {
+      document.getElementById('watchList').innerHTML = '<div class="loading">No watch data yet</div>';
+      return;
+    }
+    document.getElementById('watchList').innerHTML = d.viewers.map(function(v) {
+      var mins = v.totalMinutes || 0;
+      var t = mins >= 60 ? Math.floor(mins / 60) + 'h ' + (mins % 60) + 'min' : mins + 'min';
+      return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(31,38,64,.4)"><span>' + (v.discordUsername || v._id.slice(-6)) + '</span><span style="color:#00d4c8">' + t + '</span></div>';
+    }).join('');
+  });
+}
+
+function genKey(id, name) {
+  if (!confirm('Generate API key for ' + (name || id) + '?')) return;
+  fetch('/apikeys/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ discordId: id, discordUsername: name }) })
+    .then(function(r) { return r.json(); }).then(function(d) {
+      if (d.success) { alert('API Key:\n\n' + d.apiKey + '\n\nSend to user.'); load(); }
+      else alert('Error: ' + d.error);
+    });
+}
+
+function revokeKey(id) {
+  if (!confirm('Revoke this key?')) return;
+  fetch('/apikeys/revoke', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ discordId: id }) })
+    .then(function(r) { return r.json(); }).then(function(d) { if (d.success) load(); });
+}
+
+function createKey() {
+  var id = document.getElementById('newKeyId').value.trim();
+  var name = document.getElementById('newKeyName').value.trim();
+  if (!id || id.length < 17) { alert('Enter a valid Discord ID (17-19 digits)'); return; }
+  fetch('/apikeys/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ discordId: id, discordUsername: name }) })
+    .then(function(r) { return r.json(); }).then(function(d) {
+      if (d.success) { alert('Key created:\n\n' + d.apiKey); load(); }
+      else alert('Error: ' + d.error);
+    });
+}
+
+function fmt(m) { if (!m) return '0m'; return m >= 60 ? Math.floor(m / 60) + 'h' + (m % 60) + 'm' : m + 'm'; }
+
+function load() {
+  fetch('/admin/data').then(function(r) { return r.json(); }).then(function(d) {
+    if (!d.success) { window.location = '/admin/login'; return; }
+
+    var pr = d.profiles || [];
+    var lb = d.leaderboard || [];
+    var ac = d.activity || [];
+    var ak = d.apiKeys || [];
+
+    var totalPts = lb.reduce(function(a, u) { return a + u.points; }, 0);
+    var totalChats = lb.reduce(function(a, u) { return a + u.totalChats; }, 0);
+    var totalWatch = Math.round(lb.reduce(function(a, u) { return a + (u.totalWatchMinutes || 0); }, 0) / 60);
+
+    document.getElementById('stats').innerHTML =
+      '<div class="stat"><div class="stat-val">' + pr.length + '</div><div class="stat-lbl">Users</div></div>' +
+      '<div class="stat"><div class="stat-val">' + totalPts.toLocaleString() + '</div><div class="stat-lbl">Total Points</div></div>' +
+      '<div class="stat"><div class="stat-val">' + totalChats.toLocaleString() + '</div><div class="stat-lbl">Total Chats</div></div>' +
+      '<div class="stat"><div class="stat-val">' + totalWatch + 'h</div><div class="stat-lbl">Watch Time</div></div>';
+
+    var html = '';
+
+    // Users
+    html += '<div class="card full"><h2>Users (' + pr.length + ')</h2><table><tr><th>#</th><th>Twitch</th><th>Name</th><th>Mood</th><th>Lang</th><th>Game</th><th>Speed</th><th>Watch</th><th>Status</th><th>Actions</th></tr>';
+    pr.forEach(function(u, i) {
+      var pts = lb.find(function(p) { return p.discordId === u.discordId; });
+      var susp = pts && pts.suspended;
+      var w = fmt(pts ? pts.totalWatchMinutes : 0);
+      var mood = (u.moodTags || []).join(', ') || '-';
+      var lang = (u.langTags || []).join(', ') || '-';
+      var game = (u.gameTags || []).join(', ') || '-';
+      var speed = (u.minSec || 20) + 's-' + (u.maxSec || 70) + 's';
+      html += '<tr><td>' + (i + 1) + '</td><td><span class="badge pt">@' + u.twitchUsername + '</span></td>';
+      html += '<td style="color:#fbbf24;font-weight:700">' + (u.displayName || '-') + '</td>';
+      html += '<td style="font-size:11px;color:#9146FF">' + mood + '</td>';
+      html += '<td style="font-size:11px;color:#00d4c8">' + lang + '</td>';
+      html += '<td style="font-size:11px;color:#23d18b">' + game + '</td>';
+      html += '<td style="font-size:11px;color:#4a5270">' + speed + '</td>';
+      html += '<td style="color:#00d4c8">' + w + '</td>';
+      html += '<td>' + (susp ? '<span class="badge ps">Suspended</span>' : '<span class="badge pa">Active</span>') + '</td>';
+      html += '<td>';
+      html += '<button class="btn bv" data-s="' + u.twitchUsername + '" onclick="viewWatch(this.dataset.s)">Watch</button>';
+      html += susp
+        ? '<button class="btn bu" data-id="' + u.discordId + '" onclick="doUnsuspend(this.dataset.id)">Unsuspend</button>'
+        : '<button class="btn bs" data-id="' + u.discordId + '" onclick="openSuspend(this.dataset.id)">Suspend</button>';
+      html += '<button class="btn bk" data-id="' + u.discordId + '" data-name="' + u.twitchUsername + '" onclick="genKey(this.dataset.id,this.dataset.name)">Key</button>';
+      html += '</td></tr>';
+    });
+    html += '</table></div>';
+
+    // Leaderboard
+    html += '<div class="card"><h2>Leaderboard</h2><table><tr><th>Rank</th><th>User</th><th>Points</th><th>Chats</th><th>Watch</th></tr>';
+    if (!lb.length) html += '<tr><td colspan="5" style="color:#4a5270;text-align:center;padding:16px">No points yet</td></tr>';
+    lb.forEach(function(u, i) {
+      html += '<tr><td class="rank">#' + (i + 1) + '</td>';
+      html += '<td>' + (u.discordUsername || u.discordId.slice(-6)) + (u.twitchUsername ? ' <span class="badge pt">@' + u.twitchUsername + '</span>' : '') + '</td>';
+      html += '<td><span class="badge pp">' + u.points.toLocaleString() + ' pts</span> ';
+      html += '<button class="btn be" data-id="' + u.discordId + '" data-pts="' + u.points + '" onclick="editPts(this.dataset.id,this.dataset.pts)">Edit</button></td>';
+      html += '<td>' + u.totalChats + '</td>';
+      html += '<td style="color:#00d4c8">' + fmt(u.totalWatchMinutes) + '</td></tr>';
+    });
+    html += '</table></div>';
+
+    // API Keys
+    html += '<div class="card"><h2>API Keys (' + ak.length + ')</h2>';
+    html += '<div class="newkey">';
+    html += '<input type="text" id="newKeyId" placeholder="Discord ID (17-19 digits)">';
+    html += '<input type="text" id="newKeyName" placeholder="Username (optional)">';
+    html += '<button onclick="createKey()">+ Create Key</button>';
+    html += '</div>';
+    html += '<table><tr><th>User</th><th>Key</th><th>Status</th><th>Last Used</th><th>Actions</th></tr>';
+    if (!ak.length) html += '<tr><td colspan="5" style="color:#4a5270;text-align:center;padding:16px">No keys yet</td></tr>';
+    ak.forEach(function(k) {
+      var lu = k.lastUsed ? new Date(k.lastUsed).toLocaleDateString() : 'Never';
+      html += '<tr><td>' + (k.discordUsername || k.discordId.slice(-6)) + '</td>';
+      html += '<td><code>' + k.apiKey + '</code></td>';
+      html += '<td>' + (k.active ? '<span class="badge pa">Active</span>' : '<span class="badge ps">Revoked</span>') + '</td>';
+      html += '<td class="ts">' + lu + '</td><td>';
+      html += k.active ? '<button class="btn bs" data-id="' + k.discordId + '" onclick="revokeKey(this.dataset.id)">Revoke</button>' : '';
+      html += '<button class="btn bk" data-id="' + k.discordId + '" data-name="' + k.discordUsername + '" onclick="genKey(this.dataset.id,this.dataset.name)">Regen</button>';
+      html += '</td></tr>';
+    });
+    html += '</table></div>';
+
+    // Activity
+    html += '<div class="card full"><h2>Recent Activity</h2><table><tr><th>Time</th><th>User</th><th>Action</th><th>Target</th><th>Pts</th></tr>';
+    if (!ac.length) html += '<tr><td colspan="5" style="color:#4a5270;text-align:center;padding:16px">No activity</td></tr>';
+    ac.forEach(function(a) {
+      var acts = { chat_sent: 'Chat', stream_opened: 'Opened', watch_session: 'Watch ' + a.watchMinutes + 'min', stream_supported: 'Supported', admin_add: 'Admin +', admin_remove: 'Admin -' };
+      html += '<tr><td class="ts">' + new Date(a.timestamp).toLocaleTimeString() + '</td>';
+      html += '<td>' + (a.discordUsername || a.discordId.slice(-6)) + '</td>';
+      html += '<td>' + (acts[a.action] || a.action) + '</td>';
+      html += '<td>' + (a.targetStreamer ? '<span class="badge pt">@' + a.targetStreamer + '</span>' : '-') + '</td>';
+      html += '<td>' + (a.points > 0 ? '<span class="badge pp">+' + a.points + '</span>' : a.points < 0 ? '<span class="badge ps">' + a.points + '</span>' : '-') + '</td></tr>';
+    });
+    html += '</table></div>';
+
+    document.getElementById('content').innerHTML = html;
+  }).catch(function() {
+    document.getElementById('content').innerHTML = '<div class="full loading">Failed to load data</div>';
+  });
+}
+
+load();
+setInterval(load, 30000);
+</script>
+</body>
+</html>
