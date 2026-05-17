@@ -267,6 +267,8 @@ function fmt(m) { if (!m) return '0m'; return m >= 60 ? Math.floor(m/60)+'h'+(m%
 
 <script>
 (function() {
+  function fmt(m) { if (!m) return '0m'; return m >= 60 ? Math.floor(m/60)+'h'+(m%60)+'m' : m+'m'; }
+
   var DATA = ${JSON.stringify({
     users: users.map(function(u) {
       var pts = leaderboard.find(function(p){return p.discordId===u.discordId;});
