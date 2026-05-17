@@ -200,7 +200,7 @@ function load() {
     ak.forEach(function(k) {
       var lu = k.lastUsed ? new Date(k.lastUsed).toLocaleDateString() : 'Never';
       html += '<tr><td>' + (k.discordUsername || k.discordId.slice(-6)) + '</td>';
-      html += '<td><code>' + k.apiKey + '</code></td>';
+      html += '<td><code>' + k.apiKey + '</code> <button class="btn be" onclick="navigator.clipboard.writeText(this.dataset.key)" data-key="' + k.apiKey + '" title="Copy">Copy</button></td>';
       html += '<td>' + (k.active ? '<span class="badge pa">Active</span>' : '<span class="badge ps">Revoked</span>') + '</td>';
       html += '<td class="ts">' + lu + '</td><td>';
       html += k.active ? '<button class="btn bs" data-id="' + k.discordId + '" onclick="revokeKey(this.dataset.id)">Revoke</button>' : '';
