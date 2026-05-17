@@ -239,11 +239,11 @@ function load() {
           '<td style="color:#00d4c8">' + w + '</td>' +
           '<td>' + (susp ? '<span class="badge ps">Suspended</span>' : '<span class="badge pa">Active</span>') + '</td>' +
           '<td>' +
-          '<button class="btn bv" onclick="viewWatch(\'' + u.twitchUsername + '\')">Watch</button>' +
+          '<button class="btn bv" data-s="' + u.twitchUsername + '" onclick="viewWatch(this.dataset.s)">Watch</button>' +
           (susp
-            ? '<button class="btn bu" onclick="doUnsuspend(\'' + u.discordId + '\')">Unsuspend</button>'
-            : '<button class="btn bs" onclick="openSuspend(\'' + u.discordId + '\')">Suspend</button>') +
-          '<button class="btn bk" onclick="genKey(\'' + u.discordId + '\',\'' + u.twitchUsername + '\')">Key</button>' +
+            ? '<button class="btn bu" data-id="' + u.discordId + '" onclick="doUnsuspend(this.dataset.id)">Unsuspend</button>'
+            : '<button class="btn bs" data-id="' + u.discordId + '" onclick="openSuspend(this.dataset.id)">Suspend</button>') +
+          '<button class="btn bk" data-id="' + u.discordId + '" data-name="' + u.twitchUsername + '" onclick="genKey(this.dataset.id,this.dataset.name)">Key</button>' +
           '</td></tr>';
       });
       uh += '</table></div>';
@@ -257,7 +257,7 @@ function load() {
           '<td class="rank">#' + (i+1) + '</td>' +
           '<td>' + (u.discordUsername || u.discordId.slice(-6)) + (u.twitchUsername ? ' <span class="badge pt">@' + u.twitchUsername + '</span>' : '') + '</td>' +
           '<td><span class="badge pp">' + u.points.toLocaleString() + ' pts</span> ' +
-          '<button class="btn be" onclick="editPts(\'' + u.discordId + '\',' + u.points + ')">Edit</button></td>' +
+          '<button class="btn be" data-id="' + u.discordId + '" data-pts="' + u.points + '" onclick="editPts(this.dataset.id,this.dataset.pts)">Edit</button></td>' +
           '<td>' + u.totalChats + '</td>' +
           '<td style="color:#00d4c8">' + fmt(u.totalWatchMinutes) + '</td>' +
           '</tr>';
@@ -276,8 +276,8 @@ function load() {
           '<td>' + (k.active ? '<span class="badge pa">Active</span>' : '<span class="badge ps">Revoked</span>') + '</td>' +
           '<td class="ts">' + lu + '</td>' +
           '<td>' +
-          (k.active ? '<button class="btn bs" onclick="revokeKey(\'' + k.discordId + '\')">Revoke</button>' : '') +
-          '<button class="btn bk" onclick="genKey(\'' + k.discordId + '\',\'' + k.discordUsername + '\')">Regen</button>' +
+          (k.active ? '<button class="btn bs" data-id="' + k.discordId + '" onclick="revokeKey(this.dataset.id)">Revoke</button>' : '') +
+          '<button class="btn bk" data-id="' + k.discordId + '" data-name="' + k.discordUsername + '" onclick="genKey(this.dataset.id,this.dataset.name)">Regen</button>' +
           '</td></tr>';
       });
       kh += '</table></div>';
