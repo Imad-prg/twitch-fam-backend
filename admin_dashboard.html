@@ -176,15 +176,18 @@ function load() {
     html += '</table></div>';
 
     // Leaderboard
-    html += '<div class="card"><h2>Leaderboard</h2><table><tr><th>Rank</th><th>User</th><th>Points</th><th>Chats</th><th>Watch</th></tr>';
+    html += '<div class="card"><h2>Leaderboard</h2><table><tr><th>Rank</th><th>User</th><th>Archive (AP)</th><th>Credits (CP)</th><th>Streams</th><th>Watch</th><th>Stream Time</th></tr>';
     if (!lb.length) html += '<tr><td colspan="5" style="color:#4a5270;text-align:center;padding:16px">No points yet</td></tr>';
     lb.forEach(function(u, i) {
+      var streamLeft = u.streamTimeExpiry ? Math.max(0, Math.round((new Date(u.streamTimeExpiry) - Date.now()) / 60000)) : 0;
       html += '<tr><td class="rank">#' + (i + 1) + '</td>';
       html += '<td>' + (u.discordUsername || u.discordId.slice(-6)) + (u.twitchUsername ? ' <span class="badge pt">@' + u.twitchUsername + '</span>' : '') + '</td>';
-      html += '<td><span class="badge pp">' + u.points.toLocaleString() + ' pts</span> ';
-      html += '<button class="btn be" data-id="' + u.discordId + '" data-pts="' + u.points + '" onclick="editPts(this.dataset.id,this.dataset.pts)">Edit</button></td>';
-      html += '<td>' + u.totalChats + '</td>';
-      html += '<td style="color:#00d4c8">' + fmt(u.totalWatchMinutes) + '</td></tr>';
+      html += '<td><span class="badge pp">' + (u.archivePoints||0).toLocaleString() + ' AP</span></td>';
+      html += '<td><span class="badge pp" style="background:rgba(0,212,200,.15);color:#00d4c8;border-color:rgba(0,212,200,.3)">' + (u.creditPoints||0).toLocaleString() + ' CP</span> ';
+      html += '<button class="btn be" data-id="' + u.discordId + '" data-pts="' + (u.creditPoints||0) + '" onclick="editPts(this.dataset.id,this.dataset.pts)">Edit CP</button></td>';
+      html += '<td>' + (u.totalStreamsWatched||0) + '</td>';
+      html += '<td style="color:#00d4c8">' + fmt(u.totalWatchMinutes) + '</td>';
+      html += '<td style="color:' + (streamLeft > 0 ? '#23d18b' : '#4a5270') + '">' + (streamLeft > 0 ? streamLeft + 'min left' : 'None') + '</td></tr>';
     });
     html += '</table></div>';
 

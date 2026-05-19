@@ -10,10 +10,13 @@ const PointsSchema = new mongoose.Schema({
   discordId: { type: String, required: true },
   discordUsername: { type: String, default: '' },
   twitchUsername: { type: String, default: '' },
-  points: { type: Number, default: 0 },
+  archivePoints: { type: Number, default: 0 },   // AP — never decreases, used for ranking
+  creditPoints: { type: Number, default: 100 },  // CP — spendable, starts at 100
   totalChats: { type: Number, default: 0 },
-  totalStreamsSupported: { type: Number, default: 0 },
+  totalStreamsWatched: { type: Number, default: 0 },
   totalWatchMinutes: { type: Number, default: 0 },
+  streamTimeMinutes: { type: Number, default: 0 },
+  streamTimeExpiry: { type: Date, default: null },
   lastActive: { type: Date, default: Date.now },
   suspended: { type: Boolean, default: false },
   suspendedUntil: { type: Date, default: null },
@@ -66,7 +69,7 @@ router.get('/data', async (req, res) => {
   try {
     const { Profile } = require('./profile');
     const profiles = await Profile.find({ twitchAttached: true });
-    const leaderboard = await Points.find().sort({ points: -1 });
+    const leaderboard = await Points.find().sort({ archivePoints: -1 });
     const activity = await Activity.find().sort({ timestamp: -1 }).limit(50);
     await Points.updateMany({ suspended: true, suspendedUntil: { $lt: new Date() } }, { $set: { suspended: false, suspendedUntil: null } });
 
@@ -77,7 +80,7 @@ router.get('/data', async (req, res) => {
       success: true,
       apiKeys: apiKeys.map(function(k) { return { discordId: String(k.discordId||''), discordUsername: String(k.discordUsername||''), apiKey: String(k.apiKey||''), active: Boolean(k.active), lastUsed: k.lastUsed }; }),
       profiles: profiles.map(function(u) { return { discordId: String(u.discordId||''), twitchUsername: String(u.twitchUsername||''), displayName: String(u.displayName||''), moodTags: u.moodTags||[], langTags: u.langTags||[], gameTags: u.gameTags||[], minSec: u.minSec||20, maxSec: u.maxSec||70, chatSpeed: String(u.chatSpeed||'slow') }; }),
-      leaderboard: leaderboard.map(function(u) { return { discordId: String(u.discordId||''), discordUsername: String(u.discordUsername||''), twitchUsername: String(u.twitchUsername||''), points: Number(u.points||0), totalChats: Number(u.totalChats||0), totalWatchMinutes: Number(u.totalWatchMinutes||0), suspended: Boolean(u.suspended) }; }),
+      leaderboard: leaderboard.map(function(u) { return { discordId: String(u.discordId||''), discordUsername: String(u.discordUsername||''), twitchUsername: String(u.twitchUsername||''), archivePoints: Number(u.archivePoints||0), creditPoints: Number(u.creditPoints||0), totalChats: Number(u.totalChats||0), totalStreamsWatched: Number(u.totalStreamsWatched||0), totalWatchMinutes: Number(u.totalWatchMinutes||0), streamTimeMinutes: Number(u.streamTimeMinutes||0), streamTimeExpiry: u.streamTimeExpiry, suspended: Boolean(u.suspended) }; }),
       activity: activity.map(function(a) { return { discordId: String(a.discordId||''), discordUsername: String(a.discordUsername||''), action: String(a.action||''), targetStreamer: String(a.targetStreamer||''), points: Number(a.points||0), watchMinutes: Number(a.watchMinutes||0), timestamp: a.timestamp }; })
     });
   } catch(e) { res.json({ success: false, error: e.message }); }
@@ -167,11 +170,23 @@ router.post('/award-points', async (req, res) => {
   try {
     const existing = await Points.findOne({ discordId });
     if (existing?.suspended && (!existing.suspendedUntil || new Date() < existing.suspendedUntil)) return res.json({ success: false, suspended: true });
-    let pts = 0;
-    if (action === 'chat_sent') pts = 1;
-    if (action === 'stream_opened') pts = 5;
-    if (action === 'stream_supported') pts = 10;
-    const user = await Points.findOneAndUpdate({ discordId }, { $inc: { points: pts, totalChats: action==='chat_sent'?1:0, totalStreamsSupported: action==='stream_opened'?1:0 }, $set: { discordUsername:discordUsername||'', twitchUsername:twitchUsername||'', lastActive:new Date() } }, { upsert: true, new: true });
+    let cp = 0; let ap = 0;
+    if (action === 'stream_opened') {
+      // Count how many streams this user has opened in the last hour
+      const oneHourAgo = new Date(Date.now() - 3600000);
+      const recentOpens = await Activity.countDocuments({ discordId, action: 'stream_opened', timestamp: { $gte: oneHourAgo } });
+      // Every 10 streams opened = 100 CP + 100 AP
+      if (recentOpens > 0 && recentOpens % 10 === 0) { cp = 100; ap = 100; }
+    }
+    const user = await Points.findOneAndUpdate(
+      { discordId },
+      {
+        $inc: { creditPoints: cp, archivePoints: ap, totalStreamsWatched: action==='stream_opened'?1:0 },
+        $set: { discordUsername:discordUsername||'', twitchUsername:twitchUsername||'', lastActive:new Date() }
+      },
+      { upsert: true, new: true }
+    );
+    const pts = cp;
     await Activity.create({ discordId, discordUsername, action, targetStreamer, points: pts });
     res.json({ success: true, points: user.points });
   } catch(e) { res.json({ success: false }); }
@@ -183,7 +198,7 @@ router.post('/adjust-points', async (req, res) => {
   if (!discordId || amount === undefined) return res.json({ success: false });
   try {
     const pts = parseInt(amount);
-    const user = await Points.findOneAndUpdate({ discordId }, { $inc: { points: pts } }, { new: true });
+    const user = await Points.findOneAndUpdate({ discordId }, { $inc: { creditPoints: pts, archivePoints: pts > 0 ? pts : 0 } }, { new: true });
     await Activity.create({ discordId, action: pts > 0 ? 'admin_add' : 'admin_remove', targetStreamer: reason||'Admin', points: pts });
     res.json({ success: true, newPoints: user?.points });
   } catch(e) { res.json({ success: false, error: e.message }); }
@@ -203,6 +218,49 @@ router.get('/points/:discordId', async (req, res) => {
     const user = await Points.findOne({ discordId: req.params.discordId });
     res.json({ success: true, points: user?.points||0, user });
   } catch(e) { res.json({ success: true, points: 0 }); }
+});
+
+// ── BUY STREAM TIME ──
+router.post('/buy-stream-time', async (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  const { discordId, hours } = req.body;
+  if (!discordId || !hours) return res.json({ success: false, error: 'Missing params' });
+
+  const cost = hours * 100; // 100 points per hour
+  try {
+    const user = await Points.findOne({ discordId });
+    if (!user) return res.json({ success: false, error: 'User not found' });
+    if ((user.creditPoints || 0) < cost) return res.json({ success: false, error: 'Insufficient balance', needed: cost, has: user.creditPoints || 0 });
+
+    // Deduct from creditPoints only, archivePoints stay intact
+    const now = new Date();
+    const currentExpiry = user.streamTimeExpiry && user.streamTimeExpiry > now ? user.streamTimeExpiry : now;
+    const newExpiry = new Date(currentExpiry.getTime() + hours * 60 * 60 * 1000);
+    const addedMinutes = hours * 60;
+
+    await Points.findOneAndUpdate(
+      { discordId },
+      {
+        $inc: { creditPoints: -cost, streamTimeMinutes: addedMinutes },
+        $set: { streamTimeExpiry: newExpiry }
+      }
+    );
+    await Activity.create({ discordId, discordUsername: user.discordUsername, action: 'buy_stream_time', targetStreamer: '', points: -cost });
+    res.json({ success: true, cost, newExpiry, addedMinutes });
+  } catch(e) { res.json({ success: false, error: e.message }); }
+});
+
+// ── CHECK STREAM TIME ──
+router.get('/stream-time/:discordId', async (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  try {
+    const user = await Points.findOne({ discordId: req.params.discordId });
+    if (!user) return res.json({ hasTime: false, minutes: 0 });
+    const now = new Date();
+    const hasTime = user.streamTimeExpiry && user.streamTimeExpiry > now;
+    const minutes = hasTime ? Math.round((user.streamTimeExpiry - now) / 60000) : 0;
+    res.json({ hasTime: !!hasTime, minutes, expiry: user.streamTimeExpiry, creditPoints: user.creditPoints || 0, archivePoints: user.archivePoints || 0 });
+  } catch(e) { res.json({ hasTime: false, minutes: 0 }); }
 });
 
 module.exports = router;
