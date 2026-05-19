@@ -187,6 +187,20 @@ router.post('/award-points', async (req, res) => {
       { upsert: true, new: true }
     );
     const pts = cp;
+
+    // Auto-buy stream time: every 100 CP = 1 hour automatically
+    if (user && user.creditPoints >= 100) {
+      const hoursToAdd = Math.floor(user.creditPoints / 100);
+      const cost = hoursToAdd * 100;
+      const now = new Date();
+      const currentExpiry = user.streamTimeExpiry && user.streamTimeExpiry > now ? user.streamTimeExpiry : now;
+      const newExpiry = new Date(currentExpiry.getTime() + hoursToAdd * 60 * 60 * 1000);
+      await Points.findOneAndUpdate(
+        { discordId },
+        { $inc: { creditPoints: -cost, streamTimeMinutes: hoursToAdd * 60 }, $set: { streamTimeExpiry: newExpiry } }
+      );
+      await Activity.create({ discordId, discordUsername, action: 'auto_buy_stream_time', targetStreamer: '', points: -cost });
+    }
     await Activity.create({ discordId, discordUsername, action, targetStreamer, points: pts });
     res.json({ success: true, points: user.points });
   } catch(e) { res.json({ success: false }); }
