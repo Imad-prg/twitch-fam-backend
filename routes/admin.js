@@ -189,18 +189,7 @@ router.post('/award-points', async (req, res) => {
     const pts = cp;
 
     // Auto-buy stream time: every 100 CP = 1 hour automatically
-    if (user && user.creditPoints >= 100) {
-      const hoursToAdd = Math.floor(user.creditPoints / 100);
-      const cost = hoursToAdd * 100;
-      const now = new Date();
-      const currentExpiry = user.streamTimeExpiry && user.streamTimeExpiry > now ? user.streamTimeExpiry : now;
-      const newExpiry = new Date(currentExpiry.getTime() + hoursToAdd * 60 * 60 * 1000);
-      await Points.findOneAndUpdate(
-        { discordId },
-        { $inc: { creditPoints: -cost, streamTimeMinutes: hoursToAdd * 60 }, $set: { streamTimeExpiry: newExpiry } }
-      );
-      await Activity.create({ discordId, discordUsername, action: 'auto_buy_stream_time', targetStreamer: '', points: -cost });
-    }
+    await autoBuyStreamTime(discordId, discordUsername);
     await Activity.create({ discordId, discordUsername, action, targetStreamer, points: pts });
     res.json({ success: true, points: user.points });
   } catch(e) { res.json({ success: false }); }
@@ -233,6 +222,22 @@ router.get('/points/:discordId', async (req, res) => {
     res.json({ success: true, points: user?.points||0, user });
   } catch(e) { res.json({ success: true, points: 0 }); }
 });
+
+// ── AUTO BUY STREAM TIME ──
+async function autoBuyStreamTime(discordId, discordUsername) {
+  const user = await Points.findOne({ discordId });
+  if (!user || user.creditPoints < 100) return;
+  const hoursToAdd = Math.floor(user.creditPoints / 100);
+  const cost = hoursToAdd * 100;
+  const now = new Date();
+  const currentExpiry = user.streamTimeExpiry && user.streamTimeExpiry > now ? user.streamTimeExpiry : now;
+  const newExpiry = new Date(currentExpiry.getTime() + hoursToAdd * 60 * 60 * 1000);
+  await Points.findOneAndUpdate(
+    { discordId },
+    { $inc: { creditPoints: -cost, streamTimeMinutes: hoursToAdd * 60 }, $set: { streamTimeExpiry: newExpiry } }
+  );
+  await Activity.create({ discordId, discordUsername: discordUsername||'', action: 'auto_buy_stream_time', targetStreamer: '', points: -cost });
+}
 
 // ── GIVE 100 CP TO ALL ──
 router.post('/give-cp-all', async (req, res) => {
@@ -277,6 +282,8 @@ router.post('/buy-stream-time', async (req, res) => {
 router.get('/stream-time/:discordId', async (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
   try {
+    // Auto-buy if user has enough CP
+    await autoBuyStreamTime(req.params.discordId, '');
     const user = await Points.findOne({ discordId: req.params.discordId });
     if (!user) return res.json({ hasTime: false, minutes: 0 });
     const now = new Date();
