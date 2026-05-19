@@ -234,6 +234,15 @@ router.get('/points/:discordId', async (req, res) => {
   } catch(e) { res.json({ success: true, points: 0 }); }
 });
 
+// ── GIVE 100 CP TO ALL ──
+router.post('/give-cp-all', async (req, res) => {
+  if (!req.session?.adminAuth) return res.json({ success: false });
+  try {
+    await Points.updateMany({}, { $set: { creditPoints: 100 } });
+    res.json({ success: true });
+  } catch(e) { res.json({ success: false, error: e.message }); }
+});
+
 // ── BUY STREAM TIME ──
 router.post('/buy-stream-time', async (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');

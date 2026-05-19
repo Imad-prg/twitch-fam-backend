@@ -107,6 +107,13 @@ function genKey(id, name) {
     });
 }
 
+function giveAllCP() {
+  if (!confirm('Give 100 CP to all users?')) return;
+  fetch('/admin/give-cp-all', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { if (d.success) { alert('Done! All users now have 100 CP.'); load(); } else alert('Error'); });
+}
+
 function revokeKey(id) {
   if (!confirm('Revoke this key?')) return;
   fetch('/apikeys/revoke', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ discordId: id }) })
@@ -176,7 +183,9 @@ function load() {
     html += '</table></div>';
 
     // Leaderboard
-    html += '<div class="card"><h2>Leaderboard</h2><table><tr><th>Rank</th><th>User</th><th>Archive (AP)</th><th>Credits (CP)</th><th>Streams</th><th>Watch</th><th>Stream Time</th></tr>';
+    html += '<div class="card"><h2>Leaderboard</h2>';
+    html += '<button class="btn be" onclick="giveAllCP()" style="margin-bottom:12px;padding:8px 14px">Give 100 CP to all users</button>';
+    html += '<table><tr><th>Rank</th><th>User</th><th>Archive (AP)</th><th>Credits (CP)</th><th>Streams</th><th>Watch</th><th>Stream Time</th></tr>';
     if (!lb.length) html += '<tr><td colspan="5" style="color:#4a5270;text-align:center;padding:16px">No points yet</td></tr>';
     lb.forEach(function(u, i) {
       var streamLeft = u.streamTimeExpiry ? Math.max(0, Math.round((new Date(u.streamTimeExpiry) - Date.now()) / 60000)) : 0;
